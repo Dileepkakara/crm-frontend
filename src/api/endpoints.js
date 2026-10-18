@@ -1,0 +1,18 @@
+export const API_ENDPOINTS = {
+  leads: '/leads',
+  followups: '/followups',
+  clients: '/clients',
+  quotations: '/quotations',
+  agreements: '/agreements',
+  invoices: '/invoices',
+  payments: '/payments',
+  projects: '/projects',
+  tasks: '/tasks',
+  users: '/users',
+  notifications: '/notifications',
+  reports: '/reports',
+  dashboard: '/dashboard',
+  portal: '/portal',
+  companySettings: '/settings/company',
+  auditLogs: '/audit-logs',
+}
