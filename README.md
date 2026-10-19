@@ -86,7 +86,7 @@ VITE_API_MODE=backend
 VITE_API_BASE_URL=http://localhost:5000
 ```
 
-The API base URL includes `/api/v1`; for example, use `http://localhost:5000/api/v1` locally. In a deployed frontend, set `VITE_API_BASE_URL` to the deployed API URL and configure the backend's `FRONTEND_URL` to include the deployed frontend origin. Endpoint paths are centralized in `src/api/endpoints.js`.
+The API base URL includes `/api/v1`; for example, use `http://localhost:5000/api/v1` to run against a local API. To run the local frontend against the live API, create `frontend/.env.local` with `VITE_API_MODE=backend` and `VITE_API_BASE_URL=https://crm-backend-9lji.onrender.com/api/v1`. Restart Vite after changing environment variables. The deployed API must allow the local frontend origin in its CORS configuration. For a deployed frontend, set `VITE_API_BASE_URL` in the hosting provider and allow that frontend origin in the backend's `FRONTEND_URL`. Endpoint paths are centralized in `src/api/endpoints.js`.
 
 ## Simulated behavior
 
