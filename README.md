@@ -79,14 +79,14 @@ Mock mode is the default and makes no network requests:
 VITE_API_MODE=mock
 ```
 
-To prepare for a future backend, configure:
+Backend mode uses the local API by default while running Vite in development:
 
 ```env
 VITE_API_MODE=backend
 VITE_API_BASE_URL=http://localhost:5000
 ```
 
-Endpoint paths are centralized in `src/api/endpoints.js`. Backend mode uses HTTP requests and expects JSON responses; authentication and server-side authorization are not implemented.
+The API base URL includes `/api/v1`; for example, use `http://localhost:5000/api/v1` locally. In a deployed frontend, set `VITE_API_BASE_URL` to the deployed API URL and configure the backend's `FRONTEND_URL` to include the deployed frontend origin. Endpoint paths are centralized in `src/api/endpoints.js`.
 
 ## Simulated behavior
 

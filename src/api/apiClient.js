@@ -4,8 +4,10 @@ import { clearAccessToken, getAccessToken, setAccessToken } from './authToken'
 
 export const apiMode = import.meta.env.VITE_API_MODE || 'backend'
 export const isBackendMode = apiMode === 'backend'
-//const baseUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1').replace(/\/+$/, '')
-const baseUrl = (import.meta.env.VITE_API_BASE_URL || 'https://crm-backend-9lji.onrender.com/api/v1').replace(/\/+$/, '')
+const defaultBaseUrl = import.meta.env.DEV
+  ? 'http://localhost:5000/api/v1'
+  : 'https://crm-backend-9lji.onrender.com/api/v1'
+const baseUrl = (import.meta.env.VITE_API_BASE_URL || defaultBaseUrl).replace(/\/+$/, '')
 const wait = (ms = 140) => new Promise((resolve) => window.setTimeout(resolve, ms))
 
 let refreshPromise
