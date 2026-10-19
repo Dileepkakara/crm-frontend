@@ -194,11 +194,13 @@ export default function QuotationsPage() {
     if (!can('quotations.create')) { notify('Your role cannot save quotations.', 'error'); return }
     const preservingLegacy = form.preserveLegacyTotal
       && form.items.every((item) => !item.description.trim() && item.rate === '')
-    if (!form.clientId || !form.issueDate || !form.validUntil || !form.items.length
+    if (!form.clientId || !form.title.trim() || !form.issueDate || !form.validUntil || !form.items.length
       || (!preservingLegacy && form.items.some((item) =>
-        !item.description.trim() || Number(item.quantity) <= 0 || item.rate === ''
-        || !Number.isFinite(Number(item.rate)) || Number(item.rate) < 0))) {
-      setError('Select a client, complete the dates, and enter a description, positive quantity, and valid unit price for each item.')
+        !item.description.trim() || item.description.trim().length > 1000
+        || !Number.isFinite(Number(item.quantity)) || Number(item.quantity) <= 0 || Number(item.quantity) > 1000000000
+        || item.rate === '' || !Number.isFinite(Number(item.rate))
+        || Number(item.rate) < 0 || Number(item.rate) > 1000000000000))) {
+      setError('Select a client, enter a quotation title, complete the dates, and provide each item with a description, positive quantity, and valid unit price.')
       return
     }
     setSaving(true)
@@ -213,6 +215,7 @@ export default function QuotationsPage() {
       setPreview(saved)
       notify(editing ? 'Quotation updated.' : 'Quotation draft saved.')
     } catch (cause) {
+      setError(cause.message || 'Could not save the quotation.')
       notify(cause.message || 'Could not save the quotation.', 'error')
     } finally {
       setSaving(false)
@@ -297,7 +300,7 @@ export default function QuotationsPage() {
         <label className="form-field"><span>Customer GSTIN</span><input value={form.customerGstin} onChange={(event) => setForm({ ...form, customerGstin: event.target.value })} /></label>
         <label className="form-field"><span>Email</span><input type="email" value={form.contactEmail} onChange={(event) => setForm({ ...form, contactEmail: event.target.value })} /></label>
         <label className="form-field"><span>Phone</span><input value={form.contactPhone} onChange={(event) => setForm({ ...form, contactPhone: event.target.value })} /></label>
-        <label className="form-field"><span>Quotation title</span><input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} /></label>
+        <label className="form-field"><span>Quotation title</span><input required maxLength={200} value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} /></label>
       </div></section>
       <section className="sales-module-section"><div className="sales-module-toolbar"><h2>3. Items</h2><Button className="sales-builder-add" type="button" onClick={() => setForm({ ...form, preserveLegacyTotal: false, items: [...form.items, blankItem()] })}>Add item</Button></div>
         {form.preserveLegacyTotal && <p className="form-note">This existing quotation has a recorded total but no item breakdown. It will be preserved unless item details are added.</p>}
