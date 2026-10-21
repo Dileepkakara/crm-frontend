@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Download, Eye, Printer, Search, Trash2, X } from 'lucide-react'
+import { Download, Eye, FileDown, Printer, Search, Trash2, X } from 'lucide-react'
 import { useAuth } from '../../auth/useAuth'
 import { usePermissions } from '../../auth/usePermissions'
 import { apiFor, scopeResourceRecords } from '../../api/resourcesApi'
@@ -82,11 +82,13 @@ export default function QuotationsPage() {
   const [form, setForm] = useState(blankForm)
   const [clientQuery, setClientQuery] = useState('')
   const [preview, setPreview] = useState(null)
+  const [previewSaved, setPreviewSaved] = useState(false)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const [printing, setPrinting] = useState(false)
   const [transitioning, setTransitioning] = useState('')
   const [deleting, setDeleting] = useState('')
+  const [pdfLoading, setPdfLoading] = useState('')
   const [preferences, setPreferences] = useState(() => isBackendMode ? {} : readPreferences())
   const totals = useMemo(() => form.preserveLegacyTotal
     ? { subtotal: 0, discount: Number(editing?.discount) || 0, taxableValue: 0, sgstAmount: 0, cgstAmount: 0, tax: Number(editing?.tax) || 0, total: Number(editing?.amount ?? editing?.total) || 0 }
@@ -125,10 +127,16 @@ export default function QuotationsPage() {
   useEffect(() => {
     if (!printing) return undefined
     const finish = () => setPrinting(false)
+    const previousTitle = document.title
+    document.title = `${preview?.number || preview?.id || 'Quotation'}`
     window.addEventListener('afterprint', finish)
     const timer = window.setTimeout(() => window.print(), 80)
-    return () => { window.removeEventListener('afterprint', finish); window.clearTimeout(timer) }
-  }, [printing])
+    return () => {
+      window.removeEventListener('afterprint', finish)
+      window.clearTimeout(timer)
+      document.title = previousTitle
+    }
+  }, [printing, preview])
 
   const visibleRecords = records.filter((record) =>
     (status === 'All statuses' || record.status === status)
@@ -224,6 +232,7 @@ export default function QuotationsPage() {
       setEditing(null)
       setForm(blankForm())
       setPreview(saved)
+      setPreviewSaved(true)
       notify(editing ? 'Quotation updated.' : 'Quotation draft saved.')
     } catch (cause) {
       setError(cause.message || 'Could not save the quotation.')
@@ -271,12 +280,41 @@ export default function QuotationsPage() {
       return
     }
     setError('')
+    setPreviewSaved(false)
     setPreview(makeDocument(editing?.status || 'Draft'))
   }
   function printPreview() { setPrinting(true) }
+  async function downloadPdf() {
+    setPdfLoading(preview.id)
+    notify('In the print dialog, select Save as PDF to download this quotation.')
+    try {
+      setPreview(await apiFor.quotations.get(preview.id))
+      setPreviewSaved(true)
+      setPrinting(true)
+    } catch (cause) {
+      notify(cause.message || 'Could not load the saved quotation for PDF.', 'error')
+    } finally {
+      setPdfLoading('')
+    }
+  }
   function printRecord(record) {
     setPreview(record)
+    setPreviewSaved(true)
     setPrinting(true)
+  }
+  async function downloadPdfRecord(record) {
+    setPdfLoading(record.id)
+    notify('In the print dialog, select Save as PDF to download this quotation.')
+    try {
+      const savedRecord = await apiFor.quotations.get(record.id)
+      setPreview(savedRecord)
+      setPreviewSaved(true)
+      setPrinting(true)
+    } catch (cause) {
+      notify(cause.message || 'Could not load the saved quotation for PDF.', 'error')
+    } finally {
+      setPdfLoading('')
+    }
   }
   function exportCsv() {
     const rows = [
@@ -300,8 +338,9 @@ export default function QuotationsPage() {
     <PageHeader title="Quotation preview" description="Review this demo quotation before printing." />
     <SalesDocument kind="Quotation" record={preview}
       client={clients.find((item) => item.id === preview.clientId)} preferences={preferences}
-      onBack={() => setPreview(null)} onPrint={printPreview}
-      onEdit={can('quotations.create') ? () => { startEdit(preview); setPreview(null) } : undefined}
+      onBack={() => { setPreview(null); setPreviewSaved(false) }} onPrint={printPreview}
+      onDownloadPdf={previewSaved ? downloadPdf : undefined}
+      onEdit={can('quotations.create') ? () => { startEdit(preview); setPreview(null); setPreviewSaved(false) } : undefined}
       canEdit={can('quotations.create')} />
   </div>
 
@@ -384,8 +423,9 @@ export default function QuotationsPage() {
                 {allowedStatuses.map((value) => <option key={value} value={value}>{value}</option>)}
               </select>
             </td><td><div className="sales-module-row-actions quotation-row-actions">
-              <button type="button" onClick={() => setPreview(record)}><Eye size={16} />View</button>
+              <button type="button" onClick={() => { setPreview(record); setPreviewSaved(true) }}><Eye size={16} />View</button>
               <button type="button" onClick={() => printRecord(record)}><Printer size={16} />Print</button>
+              <button type="button" aria-label={`Download PDF for quotation ${record.id}`} disabled={Boolean(pdfLoading)} onClick={() => downloadPdfRecord(record)}><FileDown size={16} />{pdfLoading === record.id ? 'Preparing…' : 'PDF'}</button>
               {can('quotations.create') && record.status === 'Draft' && <>
                 <button type="button" onClick={() => startEdit(record)}>Edit</button>
                 <button className="quotation-delete-action" type="button" disabled={deleting === record.id} onClick={() => deleteDraft(record)}><Trash2 size={16} />{deleting === record.id ? 'Deleting…' : 'Delete'}</button>

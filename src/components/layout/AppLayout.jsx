@@ -12,10 +12,6 @@ export default function AppLayout() {
     <div className={`main-column ${collapsed ? 'main-collapsed' : ''}`}>
       <Topbar onMenu={() => setMobileOpen(true)} />
       <main className="main-content"><Outlet /></main>
-      <footer className="app-footer">
-        <span>Design Blocks CRM <b>·</b> Demo environment</span>
-        <span>All records are fictional and for demonstration only.</span>
-      </footer>
     </div>
   </div>
 }

@@ -1,5 +1,6 @@
 import { formatCurrency } from '../../utils/formatters'
 import { amountInWords } from '../../utils/amountInWords'
+import { FileDown } from 'lucide-react'
 import './salesDocuments.css'
 
 const referenceCompanyDetails = {
@@ -44,7 +45,7 @@ function CompanyBrand({ name }) {
 }
 
 export default function SalesDocument({
-  kind, record, client, preferences = {}, onPrint, onBack, onEdit, canEdit = false,
+  kind, record, client, preferences = {}, onPrint, onDownloadPdf, onBack, onEdit, canEdit = false,
   paid = 0, balance = 0, payments = [],
 }) {
   const isWorkOrder = kind === 'Work Order'
@@ -101,6 +102,7 @@ export default function SalesDocument({
       {onBack && <button type="button" className="sales-doc-button secondary" onClick={onBack}>Back</button>}
       {canEdit && onEdit && <button type="button" className="sales-doc-button secondary" onClick={onEdit}>Edit</button>}
       {onPrint && <button type="button" className="sales-doc-button primary" onClick={onPrint}>Print {kind}</button>}
+      {onDownloadPdf && <button type="button" className="sales-doc-button secondary" onClick={onDownloadPdf}><FileDown size={17} /> Download PDF</button>}
     </div>
     <article className={`sales-document-sheet${isWorkOrder ? ' sales-work-order-sheet' : ''}${isFinancialDocument ? ' sales-doc-standard-sheet' : ''}`}>
       <div className={`sales-doc-heading-grid${isFinancialDocument ? ' sales-doc-standard-header' : ''}`}>
@@ -184,7 +186,7 @@ export default function SalesDocument({
         {!isWorkOrder && <span>Thank You</span>}
       </div>}
       {terms && <section className="sales-doc-terms"><h2>Terms and Conditions.</h2><p>{terms}</p></section>}
-      <p className="sales-doc-note">Demo document only. Not a tax invoice, legal agreement, or proof of payment.</p>
+      {!isFinancialDocument && <p className="sales-doc-note">Demo document only. Not a tax invoice, legal agreement, or proof of payment.</p>}
     </article>
   </section>
 }

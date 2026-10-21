@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Download, Search, X } from 'lucide-react'
+import { Download, FileDown, Search, X } from 'lucide-react'
 import { useAuth } from '../../auth/useAuth'
 import { usePermissions } from '../../auth/usePermissions'
 import { apiFor, scopeResourceRecords } from '../../api/resourcesApi'
@@ -71,10 +71,12 @@ export default function InvoicesPage() {
   const [clientQuery, setClientQuery] = useState('')
   const [editing, setEditing] = useState(null)
   const [preview, setPreview] = useState(null)
+  const [previewSaved, setPreviewSaved] = useState(false)
   const [previewPayments, setPreviewPayments] = useState([])
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const [printing, setPrinting] = useState(false)
+  const [pdfLoading, setPdfLoading] = useState('')
   const [preferences, setPreferences] = useState(() => isBackendMode ? {} : readPreferences())
   const totals = useMemo(() => isUntouchedLegacy(form || {})
     ? { subtotal: 0, discount: 0, taxableValue: 0, tax: Number(editing?.tax) || 0, total: Number(editing?.total ?? editing?.amount) || 0 }
@@ -113,10 +115,16 @@ export default function InvoicesPage() {
   useEffect(() => {
     if (!printing) return undefined
     const finish = () => setPrinting(false)
+    const previousTitle = document.title
+    document.title = `${preview?.number || preview?.id || 'Invoice'}`
     window.addEventListener('afterprint', finish)
     const timer = window.setTimeout(() => window.print(), 80)
-    return () => { window.removeEventListener('afterprint', finish); window.clearTimeout(timer) }
-  }, [printing])
+    return () => {
+      window.removeEventListener('afterprint', finish)
+      window.clearTimeout(timer)
+      document.title = previousTitle
+    }
+  }, [printing, preview])
 
   const visibleRecords = records.filter((record) =>
     (status === 'All statuses' || record.status === status)
@@ -194,6 +202,7 @@ export default function InvoicesPage() {
     }
     setError('')
     setPreview(makeDocument())
+    setPreviewSaved(false)
     setPreviewPayments(editing ? payments.filter((payment) => payment.invoiceId === editing.id) : [])
   }
   async function saveInvoice(event) {
@@ -220,6 +229,7 @@ export default function InvoicesPage() {
       setForm(null)
       setEditing(null)
       setPreview(saved)
+      setPreviewSaved(true)
       setPreviewPayments(payments.filter((payment) => payment.invoiceId === saved.id))
       notify(editing ? 'Invoice updated.' : 'Invoice saved. Record payments in the existing Payments module.')
     } catch (cause) {
@@ -230,8 +240,24 @@ export default function InvoicesPage() {
   }
   function printRecord(record) {
     setPreview(record)
+    setPreviewSaved(true)
     setPreviewPayments(payments.filter((payment) => payment.invoiceId === record.id))
     setPrinting(true)
+  }
+  async function downloadPdfRecord(record) {
+    setPdfLoading(record.id)
+    notify('In the print dialog, select Save as PDF to download this invoice.')
+    try {
+      const savedRecord = await apiFor.invoices.get(record.id)
+      setPreview(savedRecord)
+      setPreviewSaved(true)
+      setPreviewPayments(payments.filter((payment) => payment.invoiceId === savedRecord.id))
+      setPrinting(true)
+    } catch (cause) {
+      notify(cause.message || 'Could not load the saved invoice for PDF.', 'error')
+    } finally {
+      setPdfLoading('')
+    }
   }
   function exportCsv() {
     const rows = [
@@ -263,8 +289,20 @@ export default function InvoicesPage() {
       <SalesDocument kind="Invoice" record={preview}
         client={clients.find((item) => item.id === preview.clientId)} preferences={preferences}
         paid={paid} balance={Math.max(0, total - paid)} payments={previewPayments}
-        onBack={() => setPreview(null)} onPrint={() => setPrinting(true)}
-        onEdit={can('invoices.manage') ? () => { startEdit(preview); setPreview(null) } : undefined}
+        onBack={() => { setPreview(null); setPreviewSaved(false) }} onPrint={() => setPrinting(true)}
+        onDownloadPdf={previewSaved ? async () => {
+          notify('In the print dialog, select Save as PDF to download this invoice.')
+          setPdfLoading(preview.id)
+          try {
+            setPreview(await apiFor.invoices.get(preview.id))
+            setPrinting(true)
+          } catch (cause) {
+            notify(cause.message || 'Could not load the saved invoice for PDF.', 'error')
+          } finally {
+            setPdfLoading('')
+          }
+        } : undefined}
+        onEdit={can('invoices.manage') ? () => { startEdit(preview); setPreview(null); setPreviewSaved(false) } : undefined}
         canEdit={can('invoices.manage')} />
     </div>
   }
@@ -346,7 +384,7 @@ export default function InvoicesPage() {
         <tbody>{visibleRecords.map((record) => {
           const paid = getInvoicePaid(record.id, payments)
           const total = Number(record.total ?? record.amount) || 0
-          return <tr key={record.id}><td>{record.id}</td><td>{record.client}</td><td>{record.project}</td><td>{formatDate(record.issueDate)}</td><td>{formatDate(record.dueDate)}</td><td>{formatCurrency(total)}</td><td>{formatCurrency(Math.max(0, total - paid))}</td><td>{record.status}</td><td><div className="sales-module-row-actions"><button onClick={() => { setPreview(record); setPreviewPayments(payments.filter((payment) => payment.invoiceId === record.id)) }}>View</button><button onClick={() => printRecord(record)}>Print</button>{can('invoices.manage') && <button onClick={() => startEdit(record)}>Edit</button>}</div></td></tr>
+          return <tr key={record.id}><td>{record.id}</td><td>{record.client}</td><td>{record.project}</td><td>{formatDate(record.issueDate)}</td><td>{formatDate(record.dueDate)}</td><td>{formatCurrency(total)}</td><td>{formatCurrency(Math.max(0, total - paid))}</td><td>{record.status}</td><td><div className="sales-module-row-actions"><button onClick={() => { setPreview(record); setPreviewSaved(true); setPreviewPayments(payments.filter((payment) => payment.invoiceId === record.id)) }}>View</button><button onClick={() => printRecord(record)}>Print</button><button aria-label={`Download PDF for invoice ${record.id}`} disabled={Boolean(pdfLoading)} onClick={() => downloadPdfRecord(record)}><FileDown size={16} />{pdfLoading === record.id ? 'Preparing…' : 'PDF'}</button>{can('invoices.manage') && <button onClick={() => startEdit(record)}>Edit</button>}</div></td></tr>
         })}</tbody></table></div> : <div className="sales-module-empty">No invoices found.</div>}
     </section>
   </div>
