@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Check, Download, Eye, Printer, Search, Trash2, X } from 'lucide-react'
+import { Download, Eye, Printer, Search, Trash2, X } from 'lucide-react'
 import { useAuth } from '../../auth/useAuth'
 import { usePermissions } from '../../auth/usePermissions'
 import { apiFor, scopeResourceRecords } from '../../api/resourcesApi'
@@ -61,6 +61,14 @@ function toForm(record, preferences) {
   }
 }
 
+function quotationStatusOptions(record, canSend, canApprove) {
+  if (record.status === 'Draft' && canSend) return ['Draft', 'Sent']
+  if (['Sent', 'Viewed'].includes(record.status) && canApprove) {
+    return [record.status, 'Accepted', 'Rejected']
+  }
+  return [record.status]
+}
+
 export default function QuotationsPage() {
   const { user } = useAuth()
   const { hasPermission: can } = usePermissions()
@@ -78,6 +86,7 @@ export default function QuotationsPage() {
   const [saving, setSaving] = useState(false)
   const [printing, setPrinting] = useState(false)
   const [transitioning, setTransitioning] = useState('')
+  const [deleting, setDeleting] = useState('')
   const [preferences, setPreferences] = useState(() => isBackendMode ? {} : readPreferences())
   const totals = useMemo(() => form.preserveLegacyTotal
     ? { subtotal: 0, discount: Number(editing?.discount) || 0, taxableValue: 0, sgstAmount: 0, cgstAmount: 0, tax: Number(editing?.tax) || 0, total: Number(editing?.amount ?? editing?.total) || 0 }
@@ -238,12 +247,15 @@ export default function QuotationsPage() {
   async function deleteDraft(record) {
     if (record.status !== 'Draft' || !can('quotations.create')) return
     if (!window.confirm(`Delete draft quotation ${record.id}? This cannot be undone.`)) return
+    setDeleting(record.id)
     try {
       await apiFor.quotations.remove(record.id)
       setRecords((current) => current.filter((item) => item.id !== record.id))
       notify('Draft quotation deleted.')
     } catch (cause) {
       notify(cause.message || 'Could not delete the draft quotation.', 'error')
+    } finally {
+      setDeleting('')
     }
   }
   function openPreview() {
@@ -300,25 +312,25 @@ export default function QuotationsPage() {
     <form className="sales-module-form sales-builder-form" onSubmit={saveDraft}>
       <section className="sales-module-section"><h2>1. Quotation details</h2><div className="sales-module-fields">
         <label className="form-field"><span>Quotation number</span><input value={form.id} onChange={(event) => setForm({ ...form, id: event.target.value })} /></label>
-        <label className="form-field"><span>Quotation date</span><input type="date" value={form.issueDate} onChange={(event) => setForm({ ...form, issueDate: event.target.value })} /></label>
-        <label className="form-field"><span>Valid until</span><input type="date" value={form.validUntil} onChange={(event) => setForm({ ...form, validUntil: event.target.value })} /></label>
+        <label className="form-field"><span>Quotation title *</span><input required maxLength={200} value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} /></label>
+        <label className="form-field"><span>Quotation date *</span><input type="date" required value={form.issueDate} onChange={(event) => setForm({ ...form, issueDate: event.target.value })} /></label>
+        <label className="form-field"><span>Valid until *</span><input type="date" required value={form.validUntil} onChange={(event) => setForm({ ...form, validUntil: event.target.value })} /></label>
       </div></section>
       <section className="sales-module-section"><h2>2. Recipient details</h2><div className="sales-module-fields">
-        <ClientSearchSelect clients={clients} selectedId={form.clientId} query={clientQuery}
+        <ClientSearchSelect clients={clients} selectedId={form.clientId} query={clientQuery} required
           onQueryChange={handleClientSearch} onSelect={chooseClient} />
         <label className="form-field"><span>Bill to</span><input value={form.billingName} onChange={(event) => setForm({ ...form, billingName: event.target.value })} /></label>
         <label className="form-field"><span>Address</span><input value={form.billingAddress} onChange={(event) => setForm({ ...form, billingAddress: event.target.value })} /></label>
         <label className="form-field"><span>Customer GSTIN</span><input value={form.customerGstin} onChange={(event) => setForm({ ...form, customerGstin: event.target.value })} /></label>
         <label className="form-field"><span>Email</span><input type="email" value={form.contactEmail} onChange={(event) => setForm({ ...form, contactEmail: event.target.value })} /></label>
         <label className="form-field"><span>Phone</span><input value={form.contactPhone} onChange={(event) => setForm({ ...form, contactPhone: event.target.value })} /></label>
-        <label className="form-field"><span>Quotation title</span><input required maxLength={200} value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} /></label>
       </div></section>
       <section className="sales-module-section"><div className="sales-module-toolbar"><h2>3. Items</h2><Button className="sales-builder-add" type="button" onClick={() => setForm({ ...form, preserveLegacyTotal: false, items: [...form.items, blankItem()] })}>Add item</Button></div>
         {form.preserveLegacyTotal && <p className="form-note">This existing quotation has a recorded total but no item breakdown. It will be preserved unless item details are added.</p>}
         <div className="sales-module-items">{form.items.map((item, index) => <div className="sales-module-item" key={index}>
-          <label className="form-field"><span>Description</span><input placeholder="Enter item description" value={item.description} onChange={(event) => setForm({ ...form, preserveLegacyTotal: false, items: form.items.map((row, i) => i === index ? { ...row, description: event.target.value } : row) })} /></label>
-          <label className="form-field"><span>Quantity</span><input type="number" min="0.01" step="any" value={item.quantity} onChange={(event) => setForm({ ...form, preserveLegacyTotal: false, items: form.items.map((row, i) => i === index ? { ...row, quantity: event.target.value } : row) })} /></label>
-          <label className="form-field"><span>Unit price</span><input type="number" min="0" step="0.01" value={item.rate} onChange={(event) => setForm({ ...form, preserveLegacyTotal: false, items: form.items.map((row, i) => i === index ? { ...row, rate: event.target.value } : row) })} /></label>
+          <label className="form-field"><span>Description{!form.preserveLegacyTotal ? ' *' : ''}</span><input required={!form.preserveLegacyTotal} placeholder="Enter item description" value={item.description} onChange={(event) => setForm({ ...form, preserveLegacyTotal: false, items: form.items.map((row, i) => i === index ? { ...row, description: event.target.value } : row) })} /></label>
+          <label className="form-field"><span>Quantity{!form.preserveLegacyTotal ? ' *' : ''}</span><input required={!form.preserveLegacyTotal} type="number" min="0.01" step="any" value={item.quantity} onChange={(event) => setForm({ ...form, preserveLegacyTotal: false, items: form.items.map((row, i) => i === index ? { ...row, quantity: event.target.value } : row) })} /></label>
+          <label className="form-field"><span>Unit price{!form.preserveLegacyTotal ? ' *' : ''}</span><input required={!form.preserveLegacyTotal} type="number" min="0" step="0.01" value={item.rate} onChange={(event) => setForm({ ...form, preserveLegacyTotal: false, items: form.items.map((row, i) => i === index ? { ...row, rate: event.target.value } : row) })} /></label>
           <Button type="button" variant="secondary" disabled={form.items.length === 1} onClick={() => setForm({ ...form, items: form.items.filter((_, i) => i !== index) })}>Remove</Button>
         </div>)}</div>
       </section>
@@ -353,25 +365,33 @@ export default function QuotationsPage() {
       </>} />
     <section className="panel records-panel">
       <div className="table-toolbar quotation-toolbar">
-        <label className="quotation-search"><Search size={18} aria-hidden="true" /><input aria-label="Search quotations" placeholder="Search by quotation number, client, or title…" value={search} onChange={(event) => setSearch(event.target.value)} />
-          {search && <button className="quotation-search-clear" type="button" aria-label="Clear quotation search" onClick={() => setSearch('')}><X size={17} /></button>}
+        <label className="list-search"><Search size={18} aria-hidden="true" /><input aria-label="Search quotations" placeholder="Search by quotation number, client, or title…" value={search} onChange={(event) => setSearch(event.target.value)} />
+          {search && <button className="list-search-clear" type="button" aria-label="Clear quotation search" onClick={() => setSearch('')}><X size={17} /></button>}
         </label>
         <select aria-label="Filter quotations by status" value={status} onChange={(event) => setStatus(event.target.value)}>{['All statuses', 'Draft', 'Sent', 'Viewed', 'Accepted', 'Rejected', 'Expired', 'Revised'].map((value) => <option key={value}>{value}</option>)}</select>
       </div>
-      {loading ? <div className="loading-inline">Loading quotations…</div> : visibleRecords.length ? <div className="table-scroll"><table className="data-table quotation-table"><thead><tr><th>Quotation no.</th><th>Client</th><th>Date</th><th>Valid until</th><th>Total amount</th><th>Status</th><th>Actions</th></tr></thead>
-        <tbody>{visibleRecords.map((record) => <tr key={record.id}><td>{record.id}</td><td>{record.client}</td><td>{formatDate(record.issueDate)}</td><td>{formatDate(record.validUntil)}</td><td>{formatCurrency(record.amount ?? record.total)}</td><td><span className={`quotation-status quotation-status-${record.status.toLowerCase().replaceAll(' ', '-')}`}>{record.status}</span></td><td><div className="sales-module-row-actions quotation-row-actions">
-          <button type="button" onClick={() => setPreview(record)}><Eye size={16} />View</button>
-          <button type="button" onClick={() => printRecord(record)}><Printer size={16} />Print</button>
-          {can('quotations.create') && record.status === 'Draft' && <>
-            <button type="button" disabled={Boolean(transitioning)} onClick={() => changeStatus(record, 'send')}>Send</button>
-            <button type="button" onClick={() => startEdit(record)}>Edit</button>
-            <button className="quotation-delete-action" type="button" onClick={() => deleteDraft(record)}><Trash2 size={16} />Delete</button>
-          </>}
-          {(user?.role === 'client' || can('quotations.approve')) && ['Sent', 'Viewed'].includes(record.status) && <>
-            <button className="quotation-accept-action" type="button" disabled={Boolean(transitioning)} onClick={() => changeStatus(record, 'approve')}><Check size={16} />Accept</button>
-            <button className="quotation-reject-action" type="button" disabled={Boolean(transitioning)} onClick={() => changeStatus(record, 'reject')}><X size={16} />Reject</button>
-          </>}
-        </div></td></tr>)}</tbody></table></div> : <div className="sales-module-empty">No quotations found.</div>}
+      {loading ? <div className="loading-inline" role="status"><span className="spinner" aria-hidden="true" />Loading quotations…</div> : visibleRecords.length ? (
+        <div className="table-scroll"><table className="data-table quotation-table"><thead><tr><th>Quotation no.</th><th>Client</th><th>Date</th><th>Valid until</th><th>Total amount</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody>{visibleRecords.map((record) => {
+            const allowedStatuses = quotationStatusOptions(record, can('quotations.create') || can('quotations.approve'), user?.role === 'client' || can('quotations.approve'))
+            return <tr key={record.id}><td>{record.id}</td><td>{record.client}</td><td>{formatDate(record.issueDate)}</td><td>{formatDate(record.validUntil)}</td><td>{formatCurrency(record.amount ?? record.total)}</td><td>
+              <select className={`status-select quotation-status-select status-${record.status.toLowerCase().replaceAll(' ', '-')}`} aria-label={`Change status for quotation ${record.id}`} value={record.status} disabled={allowedStatuses.length === 1 || Boolean(transitioning)} onChange={(event) => {
+                const action = { Sent: 'send', Accepted: 'approve', Rejected: 'reject' }[event.target.value]
+                if (action) void changeStatus(record, action)
+              }}>
+                {allowedStatuses.map((value) => <option key={value} value={value}>{value}</option>)}
+              </select>
+            </td><td><div className="sales-module-row-actions quotation-row-actions">
+              <button type="button" onClick={() => setPreview(record)}><Eye size={16} />View</button>
+              <button type="button" onClick={() => printRecord(record)}><Printer size={16} />Print</button>
+              {can('quotations.create') && record.status === 'Draft' && <>
+                <button type="button" onClick={() => startEdit(record)}>Edit</button>
+                <button className="quotation-delete-action" type="button" disabled={deleting === record.id} onClick={() => deleteDraft(record)}><Trash2 size={16} />{deleting === record.id ? 'Deleting…' : 'Delete'}</button>
+              </>}
+            </div></td></tr>
+          })}</tbody>
+        </table></div>
+      ) : <div className="sales-module-empty">No quotations found.</div>}
     </section>
   </div>
 }

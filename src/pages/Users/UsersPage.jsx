@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { KeyRound, Pencil, Plus, Search, ShieldCheck, ToggleLeft, ToggleRight, UsersRound } from 'lucide-react'
+import { KeyRound, Pencil, Plus, Search, ShieldCheck, ToggleLeft, ToggleRight, UsersRound, X } from 'lucide-react'
 import { authService } from '../../auth/authService'
 import { useAuth } from '../../auth/useAuth'
 import { usePermissions } from '../../auth/usePermissions'
@@ -119,7 +119,9 @@ export default function UsersPage() {
       actions={hasPermission('users.manage') && <Button onClick={() => openEditor()}><Plus size={16} /> {isBackendMode ? 'Create user' : 'Create demo user'}</Button>} />
     {!isBackendMode && <div className="prototype-callout"><ShieldCheck size={17} /> Demo users and role changes are stored in this browser only. This is not production user provisioning.</div>}
     <section className="panel records-panel">
-      <div className="table-toolbar"><div className="table-search"><Search size={16} /><input aria-label="Search users" placeholder="Search name, email, or role…" value={query} onChange={(event) => setQuery(event.target.value)} /></div>
+      <div className="table-toolbar quotation-toolbar"><label className="list-search"><Search size={18} aria-hidden="true" /><input aria-label="Search users" placeholder="Search name, email, or role…" value={query} onChange={(event) => setQuery(event.target.value)} />
+          {query && <button className="list-search-clear" type="button" aria-label="Clear user search" onClick={() => setQuery('')}><X size={17} /></button>}
+        </label>
         <select aria-label="Filter users by account status" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option>All statuses</option><option>Active</option><option>Inactive</option></select></div>
       <div className="table-scroll"><table className="data-table"><thead><tr><th>User</th><th>Email</th><th>Role</th><th>Status</th><th className="no-print">Actions</th></tr></thead>
         <tbody>{visibleUsers.map((person) => <tr key={person.id}><td><strong className="table-primary">{person.name}</strong></td><td>{person.email}</td><td>{roles.find((role) => role.key === person.role)?.name || person.roleLabel || 'Invalid role'}</td><td><span className={`badge badge-${person.status.toLowerCase()}`}>{person.status}</span></td>

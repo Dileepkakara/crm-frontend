@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Download } from 'lucide-react'
+import { Download, Search, X } from 'lucide-react'
 import { useAuth } from '../../auth/useAuth'
 import { usePermissions } from '../../auth/usePermissions'
 import { apiFor, scopeResourceRecords } from '../../api/resourcesApi'
@@ -336,7 +336,12 @@ export default function InvoicesPage() {
         {can('invoices.manage') && <Button onClick={startCreate}>Create invoice</Button>}
       </>} />
     <section className="panel records-panel">
-      <div className="table-toolbar"><input className="sales-module-search" aria-label="Search invoices" placeholder="Search invoice or client…" value={search} onChange={(event) => setSearch(event.target.value)} /><select aria-label="Filter invoices by status" value={status} onChange={(event) => setStatus(event.target.value)}>{['All statuses', 'Draft', 'Issued', 'Overdue', 'Partially Paid', 'Paid'].map((value) => <option key={value}>{value}</option>)}</select></div>
+      <div className="table-toolbar quotation-toolbar">
+        <label className="list-search"><Search size={18} aria-hidden="true" /><input aria-label="Search invoices" placeholder="Search invoice or client…" value={search} onChange={(event) => setSearch(event.target.value)} />
+          {search && <button className="list-search-clear" type="button" aria-label="Clear invoice search" onClick={() => setSearch('')}><X size={17} /></button>}
+        </label>
+        <select aria-label="Filter invoices by status" value={status} onChange={(event) => setStatus(event.target.value)}>{['All statuses', 'Draft', 'Issued', 'Overdue', 'Partially Paid', 'Paid'].map((value) => <option key={value}>{value}</option>)}</select>
+      </div>
       {loading ? <div className="loading-inline">Loading invoices…</div> : visibleRecords.length ? <div className="table-scroll"><table className="data-table"><thead><tr><th>Invoice no.</th><th>Client</th><th>Project / service</th><th>Issue date</th><th>Due date</th><th>Total</th><th>Balance due</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody>{visibleRecords.map((record) => {
           const paid = getInvoicePaid(record.id, payments)

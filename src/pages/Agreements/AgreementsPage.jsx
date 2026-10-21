@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Search, X } from 'lucide-react'
 import { useAuth } from '../../auth/useAuth'
 import { usePermissions } from '../../auth/usePermissions'
 import { apiFor, scopeResourceRecords } from '../../api/resourcesApi'
@@ -255,7 +256,12 @@ export default function AgreementsPage() {
           <option value="">From approved quotation…</option>{quotations.filter((quote) => quote.status === 'Accepted').map((quote) => <option key={quote.id} value={quote.id}>{quote.id}</option>)}
         </select>}</div>} />
     <section className="panel records-panel">
-      <div className="table-toolbar"><input className="sales-module-search" aria-label="Search work orders" placeholder="Search work order, client, or project…" value={search} onChange={(event) => setSearch(event.target.value)} /><select aria-label="Filter work orders by status" value={status} onChange={(event) => setStatus(event.target.value)}>{['All statuses', 'Draft', 'Pending approval', 'Accepted'].map((value) => <option key={value}>{value}</option>)}</select></div>
+      <div className="table-toolbar quotation-toolbar">
+        <label className="list-search"><Search size={18} aria-hidden="true" /><input aria-label="Search work orders" placeholder="Search work order, client, or project…" value={search} onChange={(event) => setSearch(event.target.value)} />
+          {search && <button className="list-search-clear" type="button" aria-label="Clear work order search" onClick={() => setSearch('')}><X size={17} /></button>}
+        </label>
+        <select aria-label="Filter work orders by status" value={status} onChange={(event) => setStatus(event.target.value)}>{['All statuses', 'Draft', 'Pending approval', 'Accepted'].map((value) => <option key={value}>{value}</option>)}</select>
+      </div>
       {loading ? <div className="loading-inline">Loading work orders…</div> : visibleRecords.length ? <div className="table-scroll"><table className="data-table"><thead><tr><th>Work order no.</th><th>Client</th><th>Quotation</th><th>Project / service</th><th>Issue date</th><th>Start date</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody>{visibleRecords.map((record) => <tr key={record.id}><td>{record.id}</td><td>{record.client}</td><td>{record.quotationId || '—'}</td><td>{record.project}</td><td>{formatDate(record.createdAt)}</td><td>{formatDate(record.startDate)}</td><td>{record.status}</td><td><div className="sales-module-row-actions"><button onClick={() => setPreview(record)}>View</button><button onClick={() => printRecord(record)}>Print</button>
           {can('agreements.approve') && record.status === 'Draft' && <button disabled={Boolean(working)} onClick={() => updateAgreement(record, 'submit')}>Send for approval</button>}

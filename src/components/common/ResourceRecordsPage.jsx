@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Download, Eye, GitBranch, Pencil, Plus, Printer, Search, Trash2 } from 'lucide-react'
+import { Download, Eye, GitBranch, Pencil, Plus, Printer, Search, Trash2, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { apiFor, scopeResourceRecords } from '../../api/resourcesApi'
 import { useApp } from '../../context/useApp'
@@ -406,7 +406,9 @@ export default function ResourceRecordsPage({ resource }) {
     </>} />
     {summary.length > 0 && <div className="mini-stats">{summary.map((item) => <div key={item.label}><small>{item.label}</small><strong>{item.value}</strong></div>)}</div>}
     <section className="panel records-panel">
-      <div className="table-toolbar"><div className="table-search"><Search size={16} /><input placeholder={config.search} value={search} onChange={(event) => { setSearch(event.target.value); setPage(1) }} /></div>
+      <div className="table-toolbar quotation-toolbar"><label className="list-search"><Search size={18} aria-hidden="true" /><input aria-label={`Search ${config.title.toLowerCase()}`} placeholder={config.search} value={search} onChange={(event) => { setSearch(event.target.value); setPage(1) }} />
+          {search && <button className="list-search-clear" type="button" aria-label={`Clear ${config.title.toLowerCase()} search`} onClick={() => { setSearch(''); setPage(1) }}><X size={17} /></button>}
+        </label>
         <div className="table-filters">
           {resource === 'notifications' && <button className={`filter-chip ${unreadOnly ? 'filter-chip-active' : ''}`} onClick={() => { setUnreadOnly(!unreadOnly); setPage(1) }}>Unread only</button>}
           {config.statuses?.length > 0 && <select aria-label="Filter by status" value={status} onChange={(event) => { setStatus(event.target.value); setPage(1) }}><option>All statuses</option>{config.statuses.map((value) => <option key={value}>{value}</option>)}</select>}

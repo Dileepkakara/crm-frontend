@@ -5,7 +5,7 @@ function clientLabel(client) {
   return client.company || client.name || ''
 }
 
-export default function ClientSearchSelect({ clients, selectedId, query, onQueryChange, onSelect }) {
+export default function ClientSearchSelect({ clients, selectedId, query, onQueryChange, onSelect, required = false }) {
   const inputId = useId()
   const listId = useId()
   const [open, setOpen] = useState(false)
@@ -45,11 +45,13 @@ export default function ClientSearchSelect({ clients, selectedId, query, onQuery
       setActiveIndex(-1)
     }
   }}>
-    <label htmlFor={inputId}>Select client</label>
+    <label htmlFor={inputId}>Select client{required ? ' *' : ''}</label>
     <div className="client-search-control">
       <input
         id={inputId}
         type="text"
+        required={required}
+        aria-required={required || undefined}
         role="combobox"
         aria-autocomplete="list"
         aria-expanded={open}
