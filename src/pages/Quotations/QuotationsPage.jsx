@@ -102,7 +102,7 @@ export default function QuotationsPage() {
         setPreferences(companySettings)
         setRecords(portal.quotations)
         setClients([portal.client])
-        return
+        return true
       }
       const [quotes, clientRecords, companySettings] = await Promise.all([
         apiFor.quotations.list(), apiFor.clients.list(), loadCompanySettings(),
@@ -110,8 +110,10 @@ export default function QuotationsPage() {
       setPreferences(companySettings)
       setRecords(scopeResourceRecords('quotations', quotes, user))
       setClients(scopeResourceRecords('clients', clientRecords, user))
+      return true
     } catch (cause) {
       notify(cause.message || 'Could not load quotations.', 'error')
+      return false
     } finally {
       setLoading(false)
     }
@@ -250,8 +252,8 @@ export default function QuotationsPage() {
     setDeleting(record.id)
     try {
       await apiFor.quotations.remove(record.id)
-      setRecords((current) => current.filter((item) => item.id !== record.id))
-      notify('Draft quotation deleted.')
+      if (await load()) notify('Draft quotation deleted.')
+      else notify('The quotation was deleted, but the list could not refresh. Reload the page to see the latest data.', 'error')
     } catch (cause) {
       notify(cause.message || 'Could not delete the draft quotation.', 'error')
     } finally {
