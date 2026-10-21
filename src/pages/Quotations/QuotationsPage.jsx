@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Download } from 'lucide-react'
+import { Check, Download, Eye, Printer, Search, Trash2, X } from 'lucide-react'
 import { useAuth } from '../../auth/useAuth'
 import { usePermissions } from '../../auth/usePermissions'
 import { apiFor, scopeResourceRecords } from '../../api/resourcesApi'
@@ -235,6 +235,17 @@ export default function QuotationsPage() {
       setTransitioning('')
     }
   }
+  async function deleteDraft(record) {
+    if (record.status !== 'Draft' || !can('quotations.create')) return
+    if (!window.confirm(`Delete draft quotation ${record.id}? This cannot be undone.`)) return
+    try {
+      await apiFor.quotations.remove(record.id)
+      setRecords((current) => current.filter((item) => item.id !== record.id))
+      notify('Draft quotation deleted.')
+    } catch (cause) {
+      notify(cause.message || 'Could not delete the draft quotation.', 'error')
+    }
+  }
   function openPreview() {
     if (!form.clientId) { setError('Select a client before previewing the quotation.'); return }
     const preservingLegacy = form.preserveLegacyTotal
@@ -334,22 +345,32 @@ export default function QuotationsPage() {
     </form>
   </div>
 
-  return <div className="page">
+  return <div className="page quotations-page">
     <PageHeader title="Quotations" description="Create, review, and print client quotations."
       actions={<>
         <Button variant="secondary" disabled={loading || visibleRecords.length === 0} onClick={exportCsv}><Download size={16} /> Export</Button>
         {can('quotations.create') && <Button onClick={startCreate}>Create quotation</Button>}
       </>} />
     <section className="panel records-panel">
-      <div className="table-toolbar"><input className="sales-module-search" aria-label="Search quotations" placeholder="Search quotation or client…" value={search} onChange={(event) => setSearch(event.target.value)} /><select aria-label="Filter quotations by status" value={status} onChange={(event) => setStatus(event.target.value)}>{['All statuses', 'Draft', 'Sent', 'Viewed', 'Accepted', 'Rejected', 'Expired', 'Revised'].map((value) => <option key={value}>{value}</option>)}</select></div>
-      {loading ? <div className="loading-inline">Loading quotations…</div> : visibleRecords.length ? <div className="table-scroll"><table className="data-table"><thead><tr><th>Quotation no.</th><th>Client</th><th>Date</th><th>Valid until</th><th>Total amount</th><th>Status</th><th>Actions</th></tr></thead>
-        <tbody>{visibleRecords.map((record) => <tr key={record.id}><td>{record.id}</td><td>{record.client}</td><td>{formatDate(record.issueDate)}</td><td>{formatDate(record.validUntil)}</td><td>{formatCurrency(record.amount ?? record.total)}</td><td>{record.status}</td><td><div className="sales-module-row-actions"><button onClick={() => setPreview(record)}>View</button><button onClick={() => printRecord(record)}>Print</button>
-          {can('quotations.create') && record.status === 'Draft' && <button disabled={Boolean(transitioning)} onClick={() => changeStatus(record, 'send')}>Send</button>}
-          {(user?.role === 'client' || can('quotations.approve')) && ['Sent', 'Viewed'].includes(record.status) && <>
-            <button disabled={Boolean(transitioning)} onClick={() => changeStatus(record, 'approve')}>Accept</button>
-            <button disabled={Boolean(transitioning)} onClick={() => changeStatus(record, 'reject')}>Reject</button>
+      <div className="table-toolbar quotation-toolbar">
+        <label className="quotation-search"><Search size={18} aria-hidden="true" /><input aria-label="Search quotations" placeholder="Search by quotation number, client, or title…" value={search} onChange={(event) => setSearch(event.target.value)} />
+          {search && <button className="quotation-search-clear" type="button" aria-label="Clear quotation search" onClick={() => setSearch('')}><X size={17} /></button>}
+        </label>
+        <select aria-label="Filter quotations by status" value={status} onChange={(event) => setStatus(event.target.value)}>{['All statuses', 'Draft', 'Sent', 'Viewed', 'Accepted', 'Rejected', 'Expired', 'Revised'].map((value) => <option key={value}>{value}</option>)}</select>
+      </div>
+      {loading ? <div className="loading-inline">Loading quotations…</div> : visibleRecords.length ? <div className="table-scroll"><table className="data-table quotation-table"><thead><tr><th>Quotation no.</th><th>Client</th><th>Date</th><th>Valid until</th><th>Total amount</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>{visibleRecords.map((record) => <tr key={record.id}><td>{record.id}</td><td>{record.client}</td><td>{formatDate(record.issueDate)}</td><td>{formatDate(record.validUntil)}</td><td>{formatCurrency(record.amount ?? record.total)}</td><td><span className={`quotation-status quotation-status-${record.status.toLowerCase().replaceAll(' ', '-')}`}>{record.status}</span></td><td><div className="sales-module-row-actions quotation-row-actions">
+          <button type="button" onClick={() => setPreview(record)}><Eye size={16} />View</button>
+          <button type="button" onClick={() => printRecord(record)}><Printer size={16} />Print</button>
+          {can('quotations.create') && record.status === 'Draft' && <>
+            <button type="button" disabled={Boolean(transitioning)} onClick={() => changeStatus(record, 'send')}>Send</button>
+            <button type="button" onClick={() => startEdit(record)}>Edit</button>
+            <button className="quotation-delete-action" type="button" onClick={() => deleteDraft(record)}><Trash2 size={16} />Delete</button>
           </>}
-          {can('quotations.create') && record.status === 'Draft' && <button onClick={() => startEdit(record)}>Edit</button>}
+          {(user?.role === 'client' || can('quotations.approve')) && ['Sent', 'Viewed'].includes(record.status) && <>
+            <button className="quotation-accept-action" type="button" disabled={Boolean(transitioning)} onClick={() => changeStatus(record, 'approve')}><Check size={16} />Accept</button>
+            <button className="quotation-reject-action" type="button" disabled={Boolean(transitioning)} onClick={() => changeStatus(record, 'reject')}><X size={16} />Reject</button>
+          </>}
         </div></td></tr>)}</tbody></table></div> : <div className="sales-module-empty">No quotations found.</div>}
     </section>
   </div>
