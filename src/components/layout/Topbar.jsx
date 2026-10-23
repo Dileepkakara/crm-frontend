@@ -71,10 +71,14 @@ export default function Topbar({ onMenu }) {
   useEffect(() => {
     if (!hasPermission('notifications.view')) return undefined
     let active = true
-    apiFor.notifications.list()
-      .then((notifications) => { if (active) setUnreadCount(notifications.filter((item) => !item.read).length) })
-      .catch((error) => { if (active) notify(error.message || 'Could not load notifications.', 'error') })
-    return () => { active = false }
+    const refreshUnread = () => {
+      apiFor.notifications.list()
+        .then((notifications) => { if (active) setUnreadCount(notifications.filter((item) => !item.read).length) })
+        .catch((error) => { if (active) notify(error.message || 'Could not load notifications.', 'error') })
+    }
+    refreshUnread()
+    const interval = window.setInterval(refreshUnread, 30_000)
+    return () => { active = false; window.clearInterval(interval) }
   }, [location.pathname, notify, hasPermission])
 
   return <header className="topbar">

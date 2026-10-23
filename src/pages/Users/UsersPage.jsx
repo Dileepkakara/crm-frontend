@@ -12,6 +12,7 @@ import { rolesApi } from '../../api/rolesApi'
 import RolesManagement from './RolesManagement'
 
 const emptyUser = { name: '', email: '', phone: '', password: '', role: ROLES.SALES_EXECUTIVE, status: 'Active', teamId: '', department: '', clientId: '' }
+const NEW_CLIENT_OPTION = '__new_client__'
 
 export default function UsersPage() {
   const { user: currentUser } = useAuth()
@@ -45,7 +46,21 @@ export default function UsersPage() {
       setUsers(userRecords)
       setClients(clientRecords)
       if (roleCatalog) {
-        setRoles(roleCatalog.roles)
+        const builtInRoles = ROLE_OPTIONS.map((option) => {
+          const configuredRole = roleCatalog.roles.find((role) => role.key === option.value)
+          return {
+            ...(configuredRole || {
+              id: option.value,
+              key: option.value,
+              description: option.description,
+              status: 'Active',
+              permissions: [],
+              builtIn: true,
+            }),
+            ...(option.value === ROLES.CLIENT ? { name: 'Client portal' } : {}),
+          }
+        })
+        setRoles([...builtInRoles, ...roleCatalog.roles.filter((role) => !ROLE_OPTIONS.some((option) => option.value === role.key))])
         setPermissionCatalog(roleCatalog.permissions)
       }
     }
@@ -69,14 +84,51 @@ export default function UsersPage() {
     event.preventDefault()
     if (!form.name.trim() || !form.email.trim()) { setError('Name and email are required.'); return }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) { setError('Enter a valid email address.'); return }
+    if (!editing && users.some((person) => person.email.toLowerCase() === form.email.trim().toLowerCase())) {
+      setError('A user account already exists with this email.')
+      return
+    }
     if (!roles.some((option) => option.key === form.role && option.status === 'Active')) { setError('Select an active role.'); return }
-    if (form.role === ROLES.CLIENT && !form.clientId) { setError('Select a client account for Client role access.'); return }
+    if (form.role === ROLES.CLIENT && !form.clientId) { setError('Select an existing client or choose to enter a new client.'); return }
+    if (form.role === ROLES.CLIENT && form.clientId === NEW_CLIENT_OPTION && !form.clientCompany?.trim()) {
+      setError('Enter the client company name.')
+      return
+    }
+    if (form.role === ROLES.CLIENT && form.clientId === NEW_CLIENT_OPTION && !form.phone?.trim()) {
+      setError('Enter a phone number for the new client record.')
+      return
+    }
     if (isBackendMode && !editing && form.password.length < 12) { setError('Set an initial password of at least 12 characters.'); return }
     if (editing?.id === currentUser.id && form.role !== currentUser.role) { setError('You cannot change your own role.'); return }
     try {
+      let clientId = form.clientId
+      if (form.role === ROLES.CLIENT && clientId === NEW_CLIENT_OPTION) {
+        const emailMatches = clients.filter((client) => client.email?.toLowerCase() === form.email.trim().toLowerCase())
+        if (emailMatches.length > 1) {
+          setError('More than one client uses this email. Select the correct existing client from the list.')
+          return
+        }
+        if (emailMatches.length === 1) {
+          clientId = emailMatches[0].id
+        } else {
+          const client = await apiFor.clients.create({
+            name: form.name.trim(),
+            company: form.clientCompany.trim(),
+            email: form.email.trim().toLowerCase(),
+            phone: form.phone.trim(),
+            status: 'Active',
+          })
+          clientId = client.id
+          setClients((current) => [...current, client])
+        }
+        setForm((current) => ({ ...current, clientId }))
+      }
+      const userForm = { ...form }
+      delete userForm.clientCompany
       await authService.saveUser({
-        ...form,
+        ...userForm,
         name: form.name.trim(),
+        ...(form.role === ROLES.CLIENT ? { clientId } : {}),
         assignedLeadIds: typeof form.assignedLeadIds === 'string' ? form.assignedLeadIds.split(',').map((item) => item.trim()).filter(Boolean) : form.assignedLeadIds,
         assignedProjectIds: typeof form.assignedProjectIds === 'string' ? form.assignedProjectIds.split(',').map((item) => item.trim()).filter(Boolean) : form.assignedProjectIds,
         ...(form.role === ROLES.CLIENT ? {} : { clientId: undefined }),
@@ -140,7 +192,14 @@ export default function UsersPage() {
         {isBackendMode && !editing && <label className="form-field"><span>Temporary password *</span><input type="password" autoComplete="new-password" minLength={12} value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} /><small className="muted">The new user will be required to change it after signing in.</small></label>}
         <label className="form-field"><span>Role *</span><select value={form.role} disabled={editing?.id === currentUser.id} onChange={(event) => setForm({ ...form, role: event.target.value })}>{roles.filter((option) => option.status === 'Active').map((option) => <option key={option.key} value={option.key}>{option.name}</option>)}</select></label>
         {isBackendMode && <label className="form-field"><span>Account status</span><select value={form.status || 'Active'} onChange={(event) => setForm({ ...form, status: event.target.value })}><option>Active</option><option>Inactive</option></select></label>}
-        {form.role === ROLES.CLIENT && <label className="form-field"><span>Linked client account *</span><select value={form.clientId || ''} onChange={(event) => setForm({ ...form, clientId: event.target.value })}><option value="">Select client…</option>{clients.map((client) => <option value={client.id} key={client.id}>{client.name} · {client.company}</option>)}</select></label>}
+        {form.role === ROLES.CLIENT && <>
+          <label className="form-field field-full"><span>Client portal account *</span><select value={form.clientId || ''} onChange={(event) => setForm({ ...form, clientId: event.target.value })}>
+            <option value="">Select an existing client…</option>
+            {clients.map((client) => <option value={client.id} key={client.id}>{client.name} · {client.company}</option>)}
+            <option value={NEW_CLIENT_OPTION}>Other — enter a new client manually</option>
+          </select><small className="muted">Link to an existing client, or create a client record and portal account together.</small></label>
+          {form.clientId === NEW_CLIENT_OPTION && <label className="form-field field-full"><span>Client company *</span><input value={form.clientCompany || ''} onChange={(event) => setForm({ ...form, clientCompany: event.target.value })} /></label>}
+        </>}
         {!isBackendMode && !editing && <p className="form-note field-full">New mock accounts use the shared demo password displayed on the sign-in page. Passwords are not saved in this user list.</p>}
         {form.role === ROLES.SALES_EXECUTIVE && <label className="form-field field-full"><span>Assigned lead IDs (comma separated)</span><input value={(form.assignedLeadIds || []).join(', ')} onChange={(event) => setForm({ ...form, assignedLeadIds: event.target.value.split(',').map((item) => item.trim()).filter(Boolean) })} placeholder="e.g. LD-1048, LD-1047" /></label>}
         {form.role === ROLES.PROJECT_MANAGER && <label className="form-field field-full"><span>Assigned project IDs (comma separated)</span><input value={(form.assignedProjectIds || []).join(', ')} onChange={(event) => setForm({ ...form, assignedProjectIds: event.target.value.split(',').map((item) => item.trim()).filter(Boolean) })} placeholder="e.g. PR-126" /></label>}

@@ -22,6 +22,8 @@ const ClientPortalPage = lazy(() => import('../pages/ClientPortal/ClientPortalPa
 const ReportsPage = lazy(() => import('../pages/Reports/ReportsPage'))
 const NotificationsPage = lazy(() => import('../pages/Notifications/NotificationsPage'))
 const UsersPage = lazy(() => import('../pages/Users/UsersPage'))
+const ClientSignupRequestsPage = lazy(() => import('../pages/ClientSignupRequests/ClientSignupRequestsPage'))
+const ClientSignupPage = lazy(() => import('../pages/ClientSignup/ClientSignupPage'))
 const SettingsPage = lazy(() => import('../pages/Settings/SettingsPage'))
 const RecordDetailsPage = lazy(() => import('../pages/RecordDetails/RecordDetailsPage'))
 const NotFoundPage = lazy(() => import('../pages/NotFound/NotFoundPage'))
@@ -40,6 +42,8 @@ function GenericRecordRoute() {
 export default function AppRoutes() {
   return <Suspense fallback={loading}><Routes>
     <Route path="login" element={<LoginPage />} />
+    <Route path="client-login" element={<LoginPage clientOnly />} />
+    <Route path="client-signup" element={<ClientSignupPage />} />
     <Route path="change-password" element={<ProtectedRoute><ChangePasswordPage /></ProtectedRoute>} />
     <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
       <Route index element={<Navigate to="/dashboard" replace />} />
@@ -52,8 +56,8 @@ export default function AppRoutes() {
       <Route path="clients/:id" element={allow('clients.view', <ClientDetailsPage />)} />
       <Route path="quotations" element={allow(['quotations.view', 'quotations.view.own'], <QuotationsPage />)} />
       <Route path="agreements" element={allow(['agreements.view', 'agreements.view.own'], <AgreementsPage />)} />
-      <Route path="invoices" element={allow(['invoices.view', 'invoices.view.own'], <InvoicesPage />)} />
-      <Route path="invoices/:id" element={allow(['invoices.view', 'invoices.view.own'], <InvoiceDetailsPage />)} />
+      <Route path="invoices" element={allow(['invoices.view', 'invoices.view.own', 'invoices.manage'], <InvoicesPage />)} />
+      <Route path="invoices/:id" element={allow(['invoices.view', 'invoices.view.own', 'invoices.manage'], <InvoiceDetailsPage />)} />
       <Route path="payments" element={allow(['payments.view', 'payments.view.own'], <PaymentsPage />)} />
       <Route path="projects" element={allow(['projects.view', 'projects.view.assigned'], <ProjectsPage />)} />
       <Route path="tasks" element={allow(['tasks.view', 'tasks.view.assigned'], <TasksPage />)} />
@@ -62,6 +66,7 @@ export default function AppRoutes() {
       <Route path="reports" element={allow(['reports.view', 'reports.view.sales', 'reports.view.financial'], <ReportsPage />)} />
       <Route path="notifications" element={allow('notifications.view', <NotificationsPage />)} />
       <Route path="users" element={allow('users.view', <UsersPage />)} />
+      <Route path="client-signup-requests" element={allow('clients.signup.manage', <ClientSignupRequestsPage />)} />
       <Route path="settings" element={allow('settings.manage', <SettingsPage />)} />
       <Route path=":resource/:id" element={<GenericRecordRoute />} />
       <Route path="*" element={<NotFoundPage />} />

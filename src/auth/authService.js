@@ -40,14 +40,18 @@ export const authService = {
       throw error
     }
   },
-  login: async (email, password) => {
+  login: async (email, password, clientOnly = false) => {
     if (isBackendMode) {
-      const result = await apiClient.auth('login', { email, password })
+      const result = await apiClient.auth(clientOnly ? 'client-login' : 'login', { email, password })
+      if (clientOnly && result.data?.user?.role !== 'client') {
+        clearAccessToken()
+        throw new Error('Email or password is incorrect.')
+      }
       setAccessToken(result.data?.accessToken)
       return result.data?.user
     }
     const user = readUsers().find((candidate) => candidate.email.toLowerCase() === email.trim().toLowerCase())
-    if (!user || user.status !== 'Active' || password !== DEMO_PASSWORD) {
+    if (!user || user.status !== 'Active' || password !== DEMO_PASSWORD || (clientOnly && user.role !== 'client')) {
       throw new Error('Email or password is incorrect, or this demo account is inactive.')
     }
     return structuredClone(user)

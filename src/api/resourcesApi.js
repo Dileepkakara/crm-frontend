@@ -107,6 +107,9 @@ export const invoicesApi = {
   issue: async (id) => isBackendMode
     ? (await apiClient.action('invoices', id, 'issue')).data
     : (await apiClient.patch('invoices', id, { status: 'Issued' })).data,
+  decide: async (id, decision, reason) => isBackendMode
+    ? (await apiClient.action('invoices', id, 'decision', { decision, ...(reason ? { reason } : {}) })).data
+    : (await apiClient.patch('invoices', id, { clientDecision: { status: decision, decidedAt: new Date().toISOString(), ...(reason ? { reason } : {}) } })).data,
 }
 export const paymentsApi = {
   ...resourceApi('payments'),
@@ -114,7 +117,44 @@ export const paymentsApi = {
     ? (await apiClient.action('payments', id, 'refund', { reason })).data
     : (await apiClient.patch('payments', id, { status: 'Refunded', refundReason: reason })).data,
 }
-export const projectsApi = resourceApi('projects')
+export const projectsApi = {
+  ...resourceApi('projects'),
+  close: async (id, handover) => {
+    if (isBackendMode) {
+      return (await apiClient.endpoint(`/projects/${encodeURIComponent(id)}/close`, 'POST', handover)).data
+    }
+    const [project, tasks, invoices, payments] = await Promise.all([
+      resourceApi('projects').get(id),
+      resourceApi('tasks').list(),
+      resourceApi('invoices').list(),
+      resourceApi('payments').list(),
+    ])
+    if (project.status !== 'Completed') throw new Error('Complete project delivery before recording handover and closing it.')
+    if (tasks.some((task) => task.projectId === id && task.status !== 'Completed')) {
+      throw new Error('Complete all project tasks before closing the project.')
+    }
+    const linkedInvoices = invoices.filter((invoice) =>
+      invoice.projectId === id
+      || (project.agreementId && invoice.agreementId === project.agreementId)
+      || (!project.agreementId && project.quotationId && invoice.quotationId === project.quotationId))
+      .filter((invoice) => invoice.status !== 'Cancelled')
+    if (!linkedInvoices.length) throw new Error('Record and settle the project’s final invoice before closing it.')
+    const unpaid = linkedInvoices.some((invoice) => {
+      const paid = payments
+        .filter((payment) => payment.invoiceId === invoice.id && payment.status === 'Recorded')
+        .reduce((sum, payment) => sum + Number(payment.amount || 0), 0)
+      return paid < Number(invoice.total || 0)
+    })
+    if (unpaid) throw new Error('Settle every project invoice before recording final handover.')
+    const now = new Date().toISOString()
+    return resourceApi('projects').update(id, {
+      status: 'Closed',
+      handover: { notes: handover.handoverNotes, clientReceived: true, confirmedAt: now, confirmedBy: 'Demo user' },
+      closedAt: now,
+      closedBy: 'Demo user',
+    })
+  },
+}
 projectsApi.fromAgreement = async (agreementId) => {
   if (isBackendMode) {
     return (await apiClient.endpoint(`/projects/from-agreement/${encodeURIComponent(agreementId)}`, 'POST')).data

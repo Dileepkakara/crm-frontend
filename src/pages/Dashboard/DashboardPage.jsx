@@ -17,26 +17,44 @@ const chartColors = ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899']
 export default function DashboardPage() {
   const [records, setRecords] = useState({})
   const [loading, setLoading] = useState(true)
+  const [refreshError, setRefreshError] = useState('')
   const { notify } = useApp()
   const { user } = useAuth()
   const { hasPermission: can } = usePermissions()
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async ({ silent = false } = {}) => {
     try {
       if (isBackendMode) {
         const { data } = await apiClient.get('dashboard')
         setRecords({ summary: data })
+        setRefreshError('')
         return
       }
       const keys = ['leads', 'followups', 'clients', 'quotations', 'invoices', 'payments', 'projects', 'tasks']
       const values = await Promise.all(keys.map((key) => apiFor[key].list()))
       setRecords(Object.fromEntries(keys.map((key, index) => [key, filterRecordsForUser(key, values[index], user)])))
+      setRefreshError('')
     } catch (error) {
-      notify(error.message || 'Could not load dashboard data.', 'error')
+      const message = error.message || 'Could not load dashboard data.'
+      setRefreshError(message)
+      if (!silent) notify(message, 'error')
     } finally { setLoading(false) }
   }, [notify, user])
   useEffect(() => {
-    const timer = window.setTimeout(() => { void refresh() }, 0)
-    return () => window.clearTimeout(timer)
+    let active = true
+    const initialTimer = window.setTimeout(() => { if (active) void refresh() }, 0)
+    const refreshWhenVisible = () => {
+      if (active && document.visibilityState === 'visible') void refresh({ silent: true })
+    }
+    const interval = window.setInterval(refreshWhenVisible, 15_000)
+    window.addEventListener('focus', refreshWhenVisible)
+    document.addEventListener('visibilitychange', refreshWhenVisible)
+    return () => {
+      active = false
+      window.clearTimeout(initialTimer)
+      window.clearInterval(interval)
+      window.removeEventListener('focus', refreshWhenVisible)
+      document.removeEventListener('visibilitychange', refreshWhenVisible)
+    }
   }, [refresh])
 
   const data = useMemo(() => {
@@ -86,13 +104,14 @@ export default function DashboardPage() {
   return <div className="page dashboard-page">
     <PageHeader title={`Welcome, ${user?.name?.split(' ')[0] || 'team'}`} description={`${user?.roleLabel || ROLE_CONFIG[user?.role]?.label || 'Your'} overview of today’s work.`}
       actions={<><Button className="no-print" variant="secondary" onClick={() => window.print()}><Printer size={16} /> Print</Button><Button className="no-print" variant="secondary" onClick={() => notify('Showing the current demo reporting period.', 'info')}><CalendarDays size={16} /> This month</Button>{can('leads.create') && <Link className="button button-primary no-print" to="/leads"><Plus size={17} /> Add lead</Link>}</>} />
+    {refreshError && <div className="resource-load-error" role="alert"><span>{refreshError}</span><Button type="button" variant="secondary" onClick={() => refresh()}>Retry</Button></div>}
     <div className="stat-grid">
       {can('leads.view.all') || can('leads.view.assigned') ? <StatCard label="My leads" value={summary ? summary.leads?.total || 0 : records.leads?.length || 0} change={can('leads.view.all') ? 'Team enquiries' : 'Assigned enquiries'} icon={UsersRound} color="blue" /> : null}
       {can('leads.view.all') || can('leads.view.assigned') ? <StatCard label="New leads" value={summary ? summary.leads?.byStatus?.New || 0 : records.leads?.filter((lead) => lead.status === 'New').length || 0} change="Ready for follow-up" icon={ArrowUpRight} color="violet" /> : null}
       {can('projects.view') || can('projects.view.assigned') ? <StatCard label="Active projects" value={summary ? Object.entries(summary.projects?.byStatus || {}).filter(([status]) => !['Completed', 'Cancelled'].includes(status)).reduce((total, [, count]) => total + count, 0) : records.projects?.filter((project) => !['Completed', 'Cancelled'].includes(project.status)).length || 0} change={`${summary ? summary.tasks?.open || 0 : records.tasks?.filter((task) => task.status !== 'Completed').length || 0} open tasks`} icon={FolderKanban} color="green" /> : null}
       {(can('quotations.view') || can('quotations.view.own')) && (can('reports.view.financial')
-        ? <StatCard label="Quotation pipeline" value={formatCurrency(summary ? summary.quotations?.pipeline || 0 : (records.quotations || []).filter((quote) => ['Sent', 'Viewed', 'Draft'].includes(quote.status)).reduce((sum, quote) => sum + Number(quote.amount || 0), 0))} change="Draft & sent quotations" icon={CircleDollarSign} color="amber" />
-        : <StatCard label="Open quotations" value={summary ? summary.quotations?.openCount || 0 : (records.quotations || []).filter((quote) => ['Sent', 'Viewed', 'Draft'].includes(quote.status)).length} change="Draft & sent quotations" icon={FileText} color="amber" />)}
+        ? <StatCard label="Quotation pipeline" value={formatCurrency(summary ? summary.quotations?.pipeline || 0 : (records.quotations || []).filter((quote) => ['Sent', 'Viewed', 'Draft'].includes(quote.status)).reduce((sum, quote) => sum + Number(quote.amount || 0), 0))} change={summary ? `Accepted ${summary.quotations?.byStatus?.Accepted || 0} · Rejected ${summary.quotations?.byStatus?.Rejected || 0}` : 'Draft & sent quotations'} icon={CircleDollarSign} color="amber" />
+        : <StatCard label="Open quotations" value={summary ? summary.quotations?.openCount || 0 : (records.quotations || []).filter((quote) => ['Sent', 'Viewed', 'Draft'].includes(quote.status)).length} change={summary ? `Accepted ${summary.quotations?.byStatus?.Accepted || 0} · Rejected ${summary.quotations?.byStatus?.Rejected || 0}` : 'Draft & sent quotations'} icon={FileText} color="amber" />)}
       {can('invoices.view') || can('payments.view') ? <StatCard label="Outstanding" value={formatCurrency(data.outstanding)} change="Across unpaid invoices" icon={ArrowDownRight} color="rose" /> : null}
       {can('followups.view') ? <StatCard label="Overdue follow-ups" value={summary ? summary.followups?.overdue || 0 : records.followups?.filter((item) => item.status === 'Overdue').length || 0} change="Needs attention" icon={CalendarDays} color="orange" /> : null}
       {can('tasks.view.assigned') && <StatCard label="My tasks" value={summary ? summary.tasks?.total || 0 : records.tasks?.length || 0} change={`${summary ? summary.tasks?.inProgress || 0 : records.tasks?.filter((task) => task.status === 'In Progress').length || 0} in progress`} icon={CalendarDays} color="orange" />}

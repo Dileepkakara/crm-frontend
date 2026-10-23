@@ -18,7 +18,7 @@ const configs = {
   agreements: { title: 'Work orders & agreements', description: 'Keep approved scope and commercial terms close to delivery.', action: 'Create work order', search: 'Search document or client…', statuses: ['Draft', 'Pending approval', 'Accepted'], columns: [['id', 'Document no.'], ['client', 'Client'], ['quotationId', 'Quotation'], ['project', 'Project'], ['version', 'Version'], ['createdAt', 'Created'], ['status', 'Approval']], fields: [['client', 'Client', 'text', true], ['clientId', 'Client ID', 'text', false], ['quotationId', 'Related quotation', 'text', true], ['project', 'Project name', 'text', true], ['version', 'Version', 'number', true], ['status', 'Approval status', 'select', true, ['Draft', 'Pending approval', 'Accepted']]] },
   invoices: { title: 'Invoices', description: 'Track issued invoices, due dates, and balances in one view.', action: 'Create invoice', search: 'Search invoice, client or project…', statuses: ['Draft', 'Issued', 'Partially Paid', 'Paid', 'Overdue', 'Cancelled'], columns: [['id', 'Invoice no.'], ['client', 'Client'], ['project', 'Project'], ['issueDate', 'Issued'], ['dueDate', 'Due date'], ['total', 'Total'], ['balance', 'Balance due'], ['status', 'Status']], fields: [['client', 'Client', 'text', true], ['clientId', 'Client ID', 'text', false], ['project', 'Project', 'text', true], ['issueDate', 'Issue date', 'date', true], ['dueDate', 'Due date', 'date', true], ['discount', 'Discount (₹)', 'number', false], ['tax', 'Tax (₹)', 'number', false], ['total', 'Total amount (₹)', 'number', true], ['status', 'Status', 'select', true, ['Draft', 'Issued', 'Overdue']]], money: ['total'] },
   payments: { title: 'Payments', description: 'A transparent record of demo payments and invoice balances.', action: 'Record payment', search: 'Search payment reference or client…', statuses: ['Recorded', 'Pending', 'Refunded'], columns: [['id', 'Reference'], ['client', 'Client'], ['invoiceId', 'Invoice'], ['project', 'Project'], ['date', 'Payment date'], ['amount', 'Amount'], ['method', 'Method'], ['status', 'Status']], fields: [['invoiceId', 'Invoice ID', 'select', true, []], ['client', 'Client', 'text', true], ['project', 'Project', 'text', false], ['date', 'Payment date', 'date', true], ['amount', 'Amount (₹)', 'number', true], ['method', 'Payment method', 'select', true, ['Bank Transfer', 'UPI', 'Cash', 'Card', 'Other']]], money: ['amount'] },
-  projects: { title: 'Projects', description: 'Keep client work, project health, and delivery dates visible.', action: 'Create project', search: 'Search project, client or manager…', statuses: ['Planning', 'Not Started', 'In Progress', 'On Hold', 'In Review', 'Completed', 'Cancelled'], columns: [['id', 'Project ID'], ['name', 'Project'], ['client', 'Client'], ['manager', 'Project manager'], ['startDate', 'Start date'], ['deadline', 'Deadline'], ['progress', 'Progress'], ['status', 'Status']], fields: [['name', 'Project name', 'text', true], ['client', 'Client', 'text', true], ['clientId', 'Client ID', 'text', false], ['quotationId', 'Related quotation', 'text', false], ['manager', 'Project manager', 'select', true, ['Priya Sharma', 'Rohan Das', 'Aditi Nair']], ['startDate', 'Start date', 'date', true], ['deadline', 'Deadline', 'date', true], ['progress', 'Progress (%)', 'number', true], ['status', 'Status', 'select', true, ['Planning', 'Not Started', 'In Progress', 'On Hold', 'In Review', 'Completed']]] },
+  projects: { title: 'Projects', description: 'Track delivery, final payment, handover, and project history.', action: 'Create project', search: 'Search project, client or manager…', statuses: ['Planning', 'Not Started', 'In Progress', 'On Hold', 'In Review', 'Completed', 'Closed', 'Cancelled'], columns: [['id', 'Project ID'], ['name', 'Project'], ['client', 'Client'], ['manager', 'Project manager'], ['startDate', 'Start date'], ['deadline', 'Deadline'], ['progress', 'Progress'], ['status', 'Status'], ['closedAt', 'Closed on']], fields: [['name', 'Project name', 'text', true], ['client', 'Client', 'text', true], ['clientId', 'Client ID', 'text', false], ['quotationId', 'Related quotation', 'text', false], ['manager', 'Project manager', 'select', true, ['Priya Sharma', 'Rohan Das', 'Aditi Nair']], ['startDate', 'Start date', 'date', true], ['deadline', 'Deadline', 'date', true], ['progress', 'Progress (%)', 'number', true], ['status', 'Status', 'select', true, ['Planning', 'Not Started', 'In Progress', 'On Hold', 'In Review', 'Completed']]] },
   tasks: { title: 'Tasks', description: 'Coordinate work, ownership, and deadlines across active projects.', action: 'Create task', search: 'Search task, project or assignee…', statuses: ['To Do', 'In Progress', 'In Review', 'Completed', 'Blocked'], columns: [['id', 'Task ID'], ['title', 'Task'], ['project', 'Project'], ['assignee', 'Assignee'], ['priority', 'Priority'], ['dueDate', 'Due date'], ['status', 'Status']], fields: [['title', 'Task title', 'text', true], ['project', 'Project', 'select', true, []], ['description', 'Description', 'textarea', false], ['assignee', 'Assigned employee', 'select', true, ['Priya Sharma', 'Rohan Das', 'Aditi Nair', 'Dev Malhotra']], ['priority', 'Priority', 'select', true, ['Low', 'Medium', 'High', 'Urgent']], ['dueDate', 'Due date', 'date', true], ['status', 'Status', 'select', true, ['To Do', 'In Progress', 'In Review', 'Completed', 'Blocked']]] },
   users: { title: 'Users & access', description: 'Review demo team members, roles, and workspace access.', action: 'Add user', search: 'Search by name or email…', statuses: ['Active', 'Inactive'], columns: [['id', 'Employee ID'], ['name', 'Name'], ['email', 'Email'], ['role', 'Role'], ['department', 'Department'], ['status', 'Status']], fields: [['name', 'Full name', 'text', true], ['email', 'Email address', 'email', true], ['role', 'Role', 'select', true, ['Super Admin', 'Director', 'Sales Manager', 'Sales Executive', 'Accounts', 'Project Manager', 'Developer', 'Designer']], ['department', 'Department', 'text', true], ['status', 'Status', 'select', true, ['Active', 'Inactive']]] },
   notifications: { title: 'Notifications', description: 'Your in-app updates across sales, finance, and delivery.', action: 'Mark all read', search: 'Search notifications…', statuses: ['Unread', 'Read'], columns: [['title', 'Notification'], ['body', 'Details'], ['category', 'Category'], ['date', 'Date'], ['read', 'State']], fields: [] },
@@ -26,6 +26,14 @@ const configs = {
 
 const emptyValues = (config) => Object.fromEntries(config.fields.map(([key]) => [key, '']))
 const statusKey = (value) => String(value || '').toLowerCase().replaceAll(' ', '-')
+
+function allowedStatusChoices(resource, record, statuses) {
+  if (resource === 'quotations') return record.status === 'Draft' ? ['Draft', 'Sent'] : [record.status]
+  if (resource === 'agreements') return record.status === 'Draft' ? ['Draft', 'Pending approval'] : [record.status]
+  if (resource === 'invoices') return record.status === 'Draft' ? ['Draft', 'Issued'] : [record.status]
+  if (resource === 'payments') return record.status === 'Recorded' ? ['Recorded', 'Refunded'] : [record.status]
+  return resource === 'projects' ? statuses.filter((value) => value !== 'Closed') : statuses
+}
 
 function getPayableInvoiceOptions(invoices, currentInvoiceId) {
   return invoices
@@ -40,7 +48,7 @@ function displayValue(record, key, resource, payments) {
   if (resource === 'invoices' && key === 'balance') return formatCurrency(Math.max(0, Number(record.total || 0) - getInvoicePaid(record.id, payments)))
   if (resource === 'invoices' && key === 'total') return formatCurrency(value)
   if (resource === 'payments' && key === 'amount') return formatCurrency(value)
-  if (key.toLowerCase().includes('date') || ['followUp', 'since', 'createdAt', 'issueDate', 'validUntil'].includes(key)) return formatDate(value)
+  if (key.toLowerCase().includes('date') || ['followUp', 'since', 'createdAt', 'issueDate', 'validUntil', 'closedAt'].includes(key)) return formatDate(String(value).slice(0, 10))
   if (key === 'amount' || key === 'total') return formatCurrency(value)
   if (key === 'progress') return `${Number(value || 0)}%`
   if (key === 'read') return value ? 'Read' : 'Unread'
@@ -57,6 +65,7 @@ export default function ResourceRecordsPage({ resource }) {
   const [records, setRecords] = useState([])
   const [payments, setPayments] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('All statuses')
   const [page, setPage] = useState(1)
@@ -68,6 +77,7 @@ export default function ResourceRecordsPage({ resource }) {
   const [form, setForm] = useState({})
   const [errors, setErrors] = useState({})
   const [saving, setSaving] = useState(false)
+  const [statusUpdating, setStatusUpdating] = useState('')
   const [unreadOnly, setUnreadOnly] = useState(false)
   const [invoiceOptions, setInvoiceOptions] = useState([])
   const [taskProjectOptions, setTaskProjectOptions] = useState([])
@@ -75,18 +85,40 @@ export default function ResourceRecordsPage({ resource }) {
   const [invoiceItems, setInvoiceItems] = useState([])
   const [revising, setRevising] = useState(null)
   const [revisionReason, setRevisionReason] = useState('')
+  const [closingProject, setClosingProject] = useState(null)
+  const [handoverNotes, setHandoverNotes] = useState('')
+  const [clientReceived, setClientReceived] = useState(false)
+  const [closing, setClosing] = useState(false)
 
-  const load = useCallback(async () => {
+  const load = useCallback(async ({ silent = false } = {}) => {
     try {
       const result = await api.list()
       setRecords(scopeResourceRecords(resource, result, user))
       if (resource === 'invoices') setPayments(await apiFor.payments.list())
-    } catch (error) { notify(error.message || 'Could not load records.', 'error') }
+      setLoadError('')
+    } catch (error) {
+      const message = error.message || 'Could not load records.'
+      setLoadError(message)
+      if (!silent) notify(message, 'error')
+    }
     finally { setLoading(false) }
   }, [api, notify, resource, user])
   useEffect(() => {
-    const timer = window.setTimeout(() => { void load() }, 0)
-    return () => window.clearTimeout(timer)
+    let active = true
+    const initialTimer = window.setTimeout(() => { if (active) void load() }, 0)
+    const refreshWhenVisible = () => {
+      if (active && document.visibilityState === 'visible') void load({ silent: true })
+    }
+    const interval = window.setInterval(refreshWhenVisible, 30_000)
+    window.addEventListener('focus', refreshWhenVisible)
+    document.addEventListener('visibilitychange', refreshWhenVisible)
+    return () => {
+      active = false
+      window.clearTimeout(initialTimer)
+      window.clearInterval(interval)
+      window.removeEventListener('focus', refreshWhenVisible)
+      document.removeEventListener('visibilitychange', refreshWhenVisible)
+    }
   }, [load])
 
   const filtered = useMemo(() => {
@@ -279,8 +311,10 @@ export default function ResourceRecordsPage({ resource }) {
         payload.client = invoice?.client || payload.client
         payload.clientId = invoice?.clientId || payload.clientId
         payload.project = invoice?.project || payload.project
-        payload.status = 'Recorded'
-        payload.recordedBy = 'Priya Sharma'
+        if (!isBackendMode) {
+          payload.status = 'Recorded'
+          payload.recordedBy = user.name
+        }
       }
       const savedRecord = editing ? await api.update(editing.id, payload) : await api.create(payload)
       if (resource === 'payments' && !isBackendMode) {
@@ -312,17 +346,15 @@ export default function ResourceRecordsPage({ resource }) {
       ? can('tasks.update.assigned') && canAccessRecord(resource, record, user)
       : Boolean(updatePermission && can(updatePermission) && canAccessRecord(resource, record, user))
     if (!permitted) { notify('Your role cannot change this record’s status.', 'error'); return }
+    setStatusUpdating(record.id)
     try {
       if (isBackendMode && resource === 'leads' && nextStatus === 'Won') {
         await apiFor.leads.convert(record.id)
       } else if (isBackendMode && resource === 'quotations') {
         if (nextStatus === 'Sent') await apiFor.quotations.send(record.id)
-        else if (nextStatus === 'Accepted') await apiFor.quotations.approve(record.id)
-        else if (nextStatus === 'Rejected') await apiFor.quotations.reject(record.id)
         else throw new Error('This quotation status can only be changed through its supported workflow.')
       } else if (isBackendMode && resource === 'agreements') {
         if (nextStatus === 'Pending approval') await apiFor.agreements.submit(record.id)
-        else if (nextStatus === 'Accepted') await apiFor.agreements.accept(record.id)
         else throw new Error('This work order status can only be changed through its supported workflow.')
       } else if (isBackendMode && resource === 'invoices') {
         if (nextStatus !== 'Issued') throw new Error('Invoice payment status is managed by the payment workflow.')
@@ -344,7 +376,8 @@ export default function ResourceRecordsPage({ resource }) {
       if (resource === 'tasks' && can('projects.manage')) await syncProjectProgress(record.project)
       notify(resource === 'notifications' ? 'Notification state updated.' : resource === 'leads' && nextStatus === 'Won' ? 'Lead converted and linked to a client.' : 'Status updated.')
       await load()
-    } catch (error) { notify(error.message, 'error') }
+    } catch (error) { notify(error.message || 'Could not update this status.', 'error') }
+    finally { setStatusUpdating('') }
   }
   async function syncProjectProgress(projectName) {
     if (!projectName) return
@@ -363,6 +396,25 @@ export default function ResourceRecordsPage({ resource }) {
       const revision = await apiFor.quotations.revise(revising.id, revisionReason.trim())
       setRevising(null); setRevisionReason(''); notify(`Revision ${revision.version} created; prior quotation preserved.`); await load()
     } catch (error) { notify(error.message || 'Could not create quotation revision.', 'error') }
+  }
+  async function confirmProjectHandover(event) {
+    event.preventDefault()
+    if (!closingProject || !can('projects.manage') || !canAccessRecord('projects', closingProject, user)) {
+      notify('Your role cannot close this project.', 'error')
+      return
+    }
+    if (!handoverNotes.trim() || !clientReceived) {
+      notify('Add handover notes and confirm that the client received the completed work.', 'error')
+      return
+    }
+    setClosing(true)
+    try {
+      await apiFor.projects.close(closingProject.id, { handoverNotes: handoverNotes.trim(), clientReceived: true })
+      setClosingProject(null); setHandoverNotes(''); setClientReceived(false)
+      notify('Final payment verified, handover recorded, and project closed. Project history has been retained.')
+      await load()
+    } catch (error) { notify(error.message || 'Could not close this project.', 'error') }
+    finally { setClosing(false) }
   }
   async function deleteRecord() {
     const permission = resource === 'leads' ? 'leads.delete' : resource === 'tasks' ? 'tasks.delete' : resource === 'followups' ? 'followups.delete' : null
@@ -414,6 +466,7 @@ export default function ResourceRecordsPage({ resource }) {
           {config.statuses?.length > 0 && <select aria-label="Filter by status" value={status} onChange={(event) => { setStatus(event.target.value); setPage(1) }}><option>All statuses</option>{config.statuses.map((value) => <option key={value}>{value}</option>)}</select>}
           <select aria-label="Sort records" value={sort} onChange={(event) => setSort(event.target.value)}><option value="">Sort: default</option>{config.columns.filter(([key]) => key !== 'status').slice(0, 6).map(([key, label]) => <option value={key} key={key}>By {label}</option>)}</select>
         </div></div>
+      {loadError && <div className="resource-load-error" role="alert"><span>{loadError}</span><Button type="button" variant="secondary" onClick={() => load()}>Retry</Button></div>}
       {loading ? <div className="loading-inline"><span className="spinner" />Loading records…</div> : filtered.length === 0
         ? <EmptyState title={search || status !== 'All statuses' ? 'No matching records' : `No ${config.title.toLowerCase()} yet`} description="Try clearing your search or create a new record to get started." />
         : <><div className="table-scroll"><table className="data-table"><thead><tr>{config.columns.map(([key, label]) => <th key={key}>{label}</th>)}<th className="actions-cell">Actions</th></tr></thead>
@@ -423,7 +476,7 @@ export default function ResourceRecordsPage({ resource }) {
               agreements: 'agreements.approve', invoices: 'invoices.manage', payments: 'payments.manage',
               projects: 'projects.manage', tasks: user?.role === 'developer' ? 'tasks.update.assigned' : 'tasks.update',
               notifications: 'notifications.view',
-            }[resource]) ? <select className={`status-select status-${statusKey(record[key])}`} aria-label={`Change status for ${record.id}`} value={record[key] || ''} onChange={(event) => updateStatus(record, event.target.value)}>{config.statuses.map((value) => <option key={value}>{value}</option>)}</select>
+            }[resource]) && allowedStatusChoices(resource, record, config.statuses).length > 1 ? <select className={`status-select status-${statusKey(record[key])}`} aria-label={`Change status for ${record.id}`} value={record[key] || ''} disabled={Boolean(statusUpdating)} onChange={(event) => updateStatus(record, event.target.value)}>{allowedStatusChoices(resource, record, config.statuses).map((value) => <option key={value}>{value}</option>)}</select>
               : key === 'status' ? <span className={`badge badge-${statusKey(record[key])}`}>{record[key]}</span>
               : key === 'read' ? <button className={`read-state ${record.read ? '' : 'is-unread'}`} onClick={() => updateStatus(record, record.read ? 'Unread' : 'Read')}>{record.read ? 'Read' : 'Unread'}</button>
               : key === 'name' || key === 'title' ? <strong className="table-primary">{record[key]}</strong>
@@ -431,7 +484,8 @@ export default function ResourceRecordsPage({ resource }) {
               : <span className={key === 'id' ? 'id-text' : ''}>{displayValue(record, key, resource, payments)}</span>}</td>)}
             <td className="actions-cell"><div className="row-actions"><button title="View details" aria-label={`View ${record.id}`} onClick={() => navigate(`/${resource}/${record.id}`)}><Eye size={16} /></button>
               {resource === 'quotations' && can('quotations.create') && <button title="Create revision" aria-label={`Revise ${record.id}`} onClick={() => { setRevising(record); setRevisionReason('') }}><GitBranch size={16} /></button>}
-              {canManageResource(user, resource) && (resource !== 'tasks' || can('tasks.update')) && <button title="Edit" aria-label={`Edit ${record.id}`} onClick={() => openEdit(record)}><Pencil size={16} /></button>}
+              {resource === 'projects' && record.status === 'Completed' && can('projects.manage') && canAccessRecord('projects', record, user) && <button title="Record handover and close project" aria-label={`Close project ${record.id}`} onClick={() => { setClosingProject(record); setHandoverNotes(''); setClientReceived(false) }}>Handover &amp; close</button>}
+              {resource !== 'payments' && record.status !== 'Closed' && canManageResource(user, resource) && (resource !== 'tasks' || can('tasks.update')) && <button title="Edit" aria-label={`Edit ${record.id}`} onClick={() => openEdit(record)}><Pencil size={16} /></button>}
               {can(resource === 'leads' ? 'leads.delete' : resource === 'tasks' ? 'tasks.delete' : resource === 'followups' ? 'followups.delete' : '') && <button title="Delete" aria-label={`Delete ${record.id}`} className="danger-action" onClick={() => setDeleting(record)}><Trash2 size={16} /></button>}</div></td>
           </tr>)}</tbody></table></div>
           <div className="table-footer"><span>Showing <b>{(page - 1) * pageSize + 1}–{Math.min(page * pageSize, filtered.length)}</b> of <b>{filtered.length}</b> records</span>
@@ -505,6 +559,14 @@ export default function ResourceRecordsPage({ resource }) {
     {revising && <Modal title={`Revise quotation ${revising.id}`} description="A new draft version is created; the previous version and its approval status remain unchanged." onClose={() => setRevising(null)}>
       <form className="record-form" onSubmit={createRevision}><label className="form-field"><span>Reason for revision *</span><textarea rows="3" value={revisionReason} onChange={(event) => setRevisionReason(event.target.value)} placeholder="Describe what changed in this version…" /></label>
         <div className="modal-actions"><Button variant="secondary" type="button" onClick={() => setRevising(null)}>Cancel</Button><Button type="submit"><GitBranch size={15} /> Create new version</Button></div></form>
+    </Modal>}
+    {closingProject && <Modal title={`Complete handover for ${closingProject.name}`} description="The CRM will verify completed project tasks and settled invoices before recording handover and closing the project. This keeps the project and its financial history available for reference." onClose={() => { if (!closing) setClosingProject(null) }}>
+      <form className="record-form" onSubmit={confirmProjectHandover}>
+        <label className="form-field"><span>Handover notes *</span><textarea rows="4" maxLength={5000} value={handoverNotes} onChange={(event) => setHandoverNotes(event.target.value)} placeholder="Record delivered items, access details, and any agreed next steps…" required /></label>
+        <label className="form-field"><span><input type="checkbox" checked={clientReceived} onChange={(event) => setClientReceived(event.target.checked)} required /> I confirm the client has received the completed work.</span></label>
+        <p className="form-note">Closure is blocked if any delivery task is incomplete, no active invoice exists, or an invoice remains unpaid. Recorded payments are internal CRM records and do not independently verify a bank transaction.</p>
+        <div className="modal-actions"><Button variant="secondary" type="button" onClick={() => setClosingProject(null)} disabled={closing}>Cancel</Button><Button type="submit" disabled={closing || !clientReceived || !handoverNotes.trim()}>{closing ? 'Verifying…' : 'Verify & close project'}</Button></div>
+      </form>
     </Modal>}
   </div>
 }

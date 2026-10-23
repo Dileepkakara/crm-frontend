@@ -25,6 +25,7 @@ export const navigationSections = [
   { title: 'INSIGHTS', links: [['Reports', '/reports', BarChart3, ['reports.view', 'reports.view.sales', 'reports.view.financial']]] },
   { title: 'ADMINISTRATION', links: [
     ['Users & access', '/users', UsersRound, 'users.view'],
+    ['Client requests', '/client-signup-requests', UsersRound, 'clients.signup.manage'],
     ['Notifications', '/notifications', Bell, 'notifications.view'],
     ['Settings', '/settings', Settings, 'settings.manage'],
   ] },

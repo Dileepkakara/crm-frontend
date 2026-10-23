@@ -7,7 +7,14 @@ export const isBackendMode = apiMode === 'backend'
 const defaultBaseUrl = import.meta.env.DEV
   ? 'http://localhost:5000/api/v1'
   : 'https://crm-backend-9lji.onrender.com/api/v1'
-const baseUrl = (import.meta.env.VITE_API_BASE_URL || defaultBaseUrl).replace(/\/+$/, '')
+const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim()
+const configuredLocalHost = configuredBaseUrl
+  && /^https?:\/\/(?:localhost|127(?:\.\d{1,3}){3}|\[::1\])(?::\d+)?(?:\/|$)/i.test(configuredBaseUrl)
+const baseUrl = (
+  configuredBaseUrl && !(import.meta.env.PROD && configuredLocalHost)
+    ? configuredBaseUrl
+    : defaultBaseUrl
+).replace(/\/+$/, '')
 const wait = (ms = 140) => new Promise((resolve) => window.setTimeout(resolve, ms))
 
 let refreshPromise
@@ -23,20 +30,38 @@ async function parseResponse(response) {
   }
 }
 
-async function backendRequest(path, method, payload, { retry = true } = {}) {
+async function backendRequest(path, method, payload, { retry = true, retryNetwork = true } = {}) {
   const token = getAccessToken()
-  const response = await fetch(`${baseUrl}${path}`, {
-    method,
-    credentials: 'include',
-    headers: {
-      ...(payload === undefined ? {} : { 'Content-Type': 'application/json' }),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    ...(payload === undefined ? {} : { body: JSON.stringify(payload) }),
-  })
-  if (response.status === 401 && retry && token && !path.startsWith('/auth/')) {
-    const refreshed = await refreshAccessToken()
-    if (refreshed) return backendRequest(path, method, payload, { retry: false })
+  let response
+  try {
+    response = await fetch(`${baseUrl}${path}`, {
+      method,
+      credentials: 'include',
+      cache: 'no-store',
+      headers: {
+        ...(payload === undefined ? {} : { 'Content-Type': 'application/json' }),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      ...(payload === undefined ? {} : { body: JSON.stringify(payload) }),
+    })
+  } catch (cause) {
+    if (method === 'GET' && retryNetwork) {
+      await wait(300)
+      return backendRequest(path, method, payload, { retry, retryNetwork: false })
+    }
+    throw new Error(
+      `Could not reach the CRM API at ${baseUrl}. Check the API URL and that the backend allows frontend origin ${window.location.origin}.`,
+      { cause },
+    )
+  }
+  if (response.status === 401 && retry && !path.startsWith('/auth/')) {
+    try {
+      const refreshed = await refreshAccessToken()
+      if (refreshed) return backendRequest(path, method, payload, { retry: false })
+    } catch (error) {
+      if (error.status === 401) window.dispatchEvent(new Event('crm:session-expired'))
+      throw error
+    }
   }
   const result = await parseResponse(response)
   if (!response.ok) {
@@ -64,7 +89,7 @@ export async function refreshAccessToken() {
         return result.data?.accessToken || null
       })
       .catch((error) => {
-        clearAccessToken()
+        if (error.status === 401) clearAccessToken()
         throw error
       })
       .finally(() => { refreshPromise = null })

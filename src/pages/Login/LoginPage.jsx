@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Eye, EyeOff, ShieldCheck } from 'lucide-react'
-import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { BriefcaseBusiness, Eye, EyeOff, ShieldCheck, UserRound } from 'lucide-react'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { DEMO_ACCOUNTS } from '../../auth/mockUsers'
 import { useAuth } from '../../auth/useAuth'
 import { ROLE_CONFIG } from '../../config/roles'
@@ -8,7 +8,7 @@ import { getHomeRoute } from '../../services/permissionsService'
 import { Button } from '../../components/common/UI'
 import { isBackendMode } from '../../api/apiClient'
 
-export default function LoginPage() {
+export default function LoginPage({ clientOnly = false }) {
   const { user, loading, login } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
@@ -27,10 +27,11 @@ export default function LoginPage() {
     if (!email.trim() || !password) { setError('Enter your email and password.'); return }
     setBusy(true)
     try {
-      const signedIn = await login(email, password)
+      const signedIn = await login(email, password, clientOnly)
       navigate(location.state?.from || getHomeRoute(signedIn), { replace: true })
     } catch (cause) {
-      setError(cause.message || 'Could not sign in to the workspace.')
+      const reference = cause.requestId ? ` Reference: ${cause.requestId}.` : ''
+      setError(`${cause.message || 'Could not sign in to the workspace.'}${reference}`)
     } finally { setBusy(false) }
   }
 
@@ -46,7 +47,15 @@ export default function LoginPage() {
         <div className="auth-login-note"><span className="auth-login-note-mark"><ShieldCheck size={18} /></span><span><strong>Built around your workflow</strong><small>From first conversation to final delivery.</small></span></div>
       </aside>
       <section className="auth-card auth-login-panel">
-        <div className="auth-intro"><span>{isBackendMode ? 'SECURE WORKSPACE' : 'DEMO WORKSPACE'}</span><h1>Welcome back</h1><p>{isBackendMode ? 'Sign in with the account credentials provided by your administrator.' : 'Sign in or choose a demo account to explore your workspace.'}</p></div>
+        <nav className="workspace-switcher" aria-label="Choose a workspace">
+          <Link to="/login" className={!clientOnly ? 'workspace-option active' : 'workspace-option'} aria-current={!clientOnly ? 'page' : undefined}>
+            <BriefcaseBusiness size={17} /><span><strong>Team workspace</strong><small>For Design Blocks staff</small></span>
+          </Link>
+          <Link to="/client-login" className={clientOnly ? 'workspace-option active' : 'workspace-option'} aria-current={clientOnly ? 'page' : undefined}>
+            <UserRound size={17} /><span><strong>Client portal</strong><small>For Design Blocks clients</small></span>
+          </Link>
+        </nav>
+        <div className="auth-intro"><span>{isBackendMode ? 'SECURE WORKSPACE' : 'DEMO WORKSPACE'}</span><h1>{clientOnly ? 'Client sign in' : 'Welcome back'}</h1><p>{clientOnly ? 'Sign in with the client account provided by Design Blocks.' : isBackendMode ? 'Sign in with the account credentials provided by your administrator.' : 'Sign in or choose a demo account to explore your workspace.'}</p></div>
         <form className="auth-form" onSubmit={submit}>
           <label className="form-field"><span>Email address</span><input type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@designblocks.demo" /></label>
           <label className="form-field"><span>Password</span><span className="auth-password-wrap"><input type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder={isBackendMode ? 'Enter your password' : 'Enter demo password'} /><button type="button" className="auth-password-toggle" aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></span></label>
@@ -55,12 +64,13 @@ export default function LoginPage() {
         </form>
         {!isBackendMode && <section className="demo-accounts" aria-labelledby="demo-accounts-title">
           <div className="demo-accounts-heading"><div><h2 id="demo-accounts-title">Explore with a demo account</h2><p>Pick a role to prefill the sign-in form</p></div><ShieldCheck size={19} /></div>
-          <div className="demo-account-list">{DEMO_ACCOUNTS.map((account) => <div className="demo-account" key={account.id}>
+          <div className="demo-account-list">{DEMO_ACCOUNTS.filter((account) => !clientOnly || account.role === 'client').map((account) => <div className="demo-account" key={account.id}>
             <div><strong>{ROLE_CONFIG[account.role].label}</strong><small>{account.email}</small><small>Password: {account.password}</small></div>
             <button type="button" onClick={() => { setEmail(account.email); setPassword(account.password); setError('') }}>Use</button>
           </div>)}</div>
         </section>}
         {!isBackendMode && <p className="auth-disclaimer">Demo only. This frontend uses mock authentication and is not a production security control.</p>}
+        {clientOnly && <p className="auth-disclaimer">New to the portal? <Link to="/client-signup">Request client access</Link></p>}
       </section>
     </div>
   </main>

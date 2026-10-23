@@ -5,7 +5,7 @@ import { useAuth } from '../../auth/useAuth'
 import { Button } from '../common/UI'
 
 export default function ChangePasswordForm({ forced = false, onCancel }) {
-  const { changePassword } = useAuth()
+  const { changePassword, user } = useAuth()
   const { notify } = useApp()
   const navigate = useNavigate()
   const [currentPassword, setCurrentPassword] = useState('')
@@ -29,7 +29,7 @@ export default function ChangePasswordForm({ forced = false, onCancel }) {
     try {
       await changePassword({ currentPassword, newPassword })
       notify('Password changed. Sign in again with your new password.')
-      navigate('/login', { replace: true })
+      navigate(user?.role === 'client' ? '/client-login' : '/login', { replace: true })
     } catch (cause) {
       setError(cause.message || 'Could not change your password.')
     } finally {

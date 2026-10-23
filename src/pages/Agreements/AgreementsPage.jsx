@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Search, X } from 'lucide-react'
 import { useAuth } from '../../auth/useAuth'
 import { usePermissions } from '../../auth/usePermissions'
 import { apiFor, scopeResourceRecords } from '../../api/resourcesApi'
 import { useApp } from '../../context/useApp'
-import { Button, PageHeader } from '../../components/common/UI'
+import { Badge, Button, PageHeader } from '../../components/common/UI'
 import SalesDocument from '../SalesFinance/SalesDocument'
 import { canAccessRecord } from '../../services/permissionsService'
 import { readPreferences } from '../../services/storageService'
@@ -26,6 +27,7 @@ const blankForm = (preferences = {}) => ({
 })
 
 export default function AgreementsPage() {
+  const navigate = useNavigate()
   const { user } = useAuth()
   const { hasPermission: can } = usePermissions()
   const { notify } = useApp()
@@ -44,8 +46,8 @@ export default function AgreementsPage() {
   const [working, setWorking] = useState('')
   const [preferences, setPreferences] = useState(() => isBackendMode ? {} : readPreferences())
 
-  const load = useCallback(async () => {
-    setLoading(true)
+  const load = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true)
     try {
       if (isBackendMode && user?.role === ROLES.CLIENT) {
         const [{ data: portal }, companySettings] = await Promise.all([
@@ -65,14 +67,27 @@ export default function AgreementsPage() {
       setClients(scopeResourceRecords('clients', clientRecords, user))
       setQuotations(scopeResourceRecords('quotations', quoteRecords, user))
     } catch (cause) {
-      notify(cause.message || 'Could not load work orders.', 'error')
+      if (!silent) notify(cause.message || 'Could not load work orders.', 'error')
     } finally {
       setLoading(false)
     }
   }, [notify, user])
   useEffect(() => {
-    const timer = window.setTimeout(() => { void load() }, 0)
-    return () => window.clearTimeout(timer)
+    let active = true
+    const initialTimer = window.setTimeout(() => { if (active) void load() }, 0)
+    const refreshWhenVisible = () => {
+      if (active && document.visibilityState === 'visible') void load({ silent: true })
+    }
+    const interval = window.setInterval(refreshWhenVisible, 15_000)
+    window.addEventListener('focus', refreshWhenVisible)
+    document.addEventListener('visibilitychange', refreshWhenVisible)
+    return () => {
+      active = false
+      window.clearTimeout(initialTimer)
+      window.clearInterval(interval)
+      window.removeEventListener('focus', refreshWhenVisible)
+      document.removeEventListener('visibilitychange', refreshWhenVisible)
+    }
   }, [load])
 
   async function updateAgreement(record, action) {
@@ -236,7 +251,7 @@ export default function AgreementsPage() {
       </div></section>
       <section className="sales-module-section"><h2>Company and bank details</h2><div className="sales-module-fields">
         <label className="form-field"><span>Company name</span><input value={preferences.companyName || 'Design Blocks'} readOnly /></label>
-        <label className="form-field"><span>Company logo</span><div className="sales-module-logo"><span className="sales-doc-brand">D</span><span>Existing Design Blocks brand mark</span></div></label>
+        <label className="form-field"><span>Company logo</span><div className="sales-module-logo"><img src="/design-blocks-logo.png" alt="Design Blocks logo" /></div></label>
         <label className="form-field"><span>Company GSTIN</span><input value={form.companyGstin} onChange={(event) => setForm({ ...form, companyGstin: event.target.value })} /></label>
         <label className="form-field field-wide"><span>Company address</span><textarea rows="2" value={form.companyAddress} onChange={(event) => setForm({ ...form, companyAddress: event.target.value })} /></label>
         <label className="form-field field-wide"><span>Bank details (optional)</span><textarea rows="3" value={form.bankDetails} onChange={(event) => setForm({ ...form, bankDetails: event.target.value })} placeholder="Enter only verified business bank details." /></label>
@@ -260,15 +275,21 @@ export default function AgreementsPage() {
         <label className="list-search"><Search size={18} aria-hidden="true" /><input aria-label="Search work orders" placeholder="Search work order, client, or project…" value={search} onChange={(event) => setSearch(event.target.value)} />
           {search && <button className="list-search-clear" type="button" aria-label="Clear work order search" onClick={() => setSearch('')}><X size={17} /></button>}
         </label>
-        <select aria-label="Filter work orders by status" value={status} onChange={(event) => setStatus(event.target.value)}>{['All statuses', 'Draft', 'Pending approval', 'Accepted'].map((value) => <option key={value}>{value}</option>)}</select>
+        <select aria-label="Filter work orders by status" value={status} onChange={(event) => setStatus(event.target.value)}>{['All statuses', 'Draft', 'Pending approval', 'Accepted', 'Rejected'].map((value) => <option key={value}>{value}</option>)}</select>
       </div>
       {loading ? <div className="loading-inline">Loading work orders…</div> : visibleRecords.length ? <div className="table-scroll"><table className="data-table"><thead><tr><th>Work order no.</th><th>Client</th><th>Quotation</th><th>Project / service</th><th>Issue date</th><th>Start date</th><th>Status</th><th>Actions</th></tr></thead>
-        <tbody>{visibleRecords.map((record) => <tr key={record.id}><td>{record.id}</td><td>{record.client}</td><td>{record.quotationId || '—'}</td><td>{record.project}</td><td>{formatDate(record.createdAt)}</td><td>{formatDate(record.startDate)}</td><td>{record.status}</td><td><div className="sales-module-row-actions"><button onClick={() => setPreview(record)}>View</button><button onClick={() => printRecord(record)}>Print</button>
+        <tbody>{visibleRecords.map((record) => {
+          const quotationSnapshot = record.quotationSnapshot || record.acceptedSnapshot?.quotationSnapshot
+          const sourceQuotation = quotations.find((quotation) => quotation.id === record.quotationId) || quotationSnapshot
+          const hasInvoiceItems = Boolean(sourceQuotation?.items?.length || sourceQuotation?.lineItems?.length)
+          return <tr key={record.id}><td>{record.id}</td><td>{record.client}</td><td>{record.quotationId || '—'}</td><td>{record.project}</td><td>{formatDate(record.createdAt)}</td><td>{formatDate(record.startDate)}</td><td><Badge>{record.status}</Badge></td><td><div className="sales-module-row-actions"><button onClick={() => setPreview(record)}>View</button><button onClick={() => printRecord(record)}>Print</button>
+          {can('invoices.manage') && record.status === 'Accepted' && hasInvoiceItems && <button onClick={() => navigate('/invoices', { state: { invoiceSource: { kind: 'agreement', record } } })}>Create invoice</button>}
           {can('agreements.approve') && record.status === 'Draft' && <button disabled={Boolean(working)} onClick={() => updateAgreement(record, 'submit')}>Send for approval</button>}
           {user?.role === ROLES.CLIENT && record.status === 'Pending approval' && <button disabled={Boolean(working)} onClick={() => updateAgreement(record, 'accept')}>Accept</button>}
           {can('agreements.approve') && can('projects.manage') && record.status === 'Accepted' && !record.projectId && <button disabled={Boolean(working)} onClick={() => updateAgreement(record, 'project')}>Create project</button>}
           {can('agreements.approve') && record.status === 'Draft' && <button onClick={() => startEdit(record)}>Edit</button>}
-        </div></td></tr>)}</tbody></table></div> : <div className="sales-module-empty">No work orders found.</div>}
+        </div></td></tr>
+        })}</tbody></table></div> : <div className="sales-module-empty">No work orders found.</div>}
     </section>
   </div>
 }

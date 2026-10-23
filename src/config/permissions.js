@@ -11,7 +11,7 @@ const all = [
   'projects.view', 'projects.view.assigned', 'projects.manage',
   'tasks.view', 'tasks.view.assigned', 'tasks.create', 'tasks.update', 'tasks.update.assigned', 'tasks.delete', 'tasks.comment.internal',
   'reports.view', 'reports.view.sales', 'reports.view.financial',
-  'users.view', 'users.manage', 'settings.manage', 'notifications.view',
+  'users.view', 'users.manage', 'clients.signup.manage', 'settings.manage', 'notifications.view',
   'clientPortal.view.own',
 ]
 
@@ -63,6 +63,7 @@ export const ROUTE_PERMISSIONS = {
   '/client-portal': 'clientPortal.view.own',
   '/reports': ['reports.view', 'reports.view.sales', 'reports.view.financial'],
   '/users': 'users.view',
+  '/client-signup-requests': 'clients.signup.manage',
   '/notifications': 'notifications.view',
   '/settings': 'settings.manage',
 }

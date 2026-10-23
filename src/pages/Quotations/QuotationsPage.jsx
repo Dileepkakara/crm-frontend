@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Download, Eye, FileDown, Printer, Search, Trash2, X } from 'lucide-react'
 import { useAuth } from '../../auth/useAuth'
 import { usePermissions } from '../../auth/usePermissions'
@@ -61,15 +62,13 @@ function toForm(record, preferences) {
   }
 }
 
-function quotationStatusOptions(record, canSend, canApprove) {
+function quotationStatusOptions(record, canSend) {
   if (record.status === 'Draft' && canSend) return ['Draft', 'Sent']
-  if (['Sent', 'Viewed'].includes(record.status) && canApprove) {
-    return [record.status, 'Accepted', 'Rejected']
-  }
   return [record.status]
 }
 
 export default function QuotationsPage() {
+  const navigate = useNavigate()
   const { user } = useAuth()
   const { hasPermission: can } = usePermissions()
   const { notify } = useApp()
@@ -94,7 +93,7 @@ export default function QuotationsPage() {
     ? { subtotal: 0, discount: Number(editing?.discount) || 0, taxableValue: 0, sgstAmount: 0, cgstAmount: 0, tax: Number(editing?.tax) || 0, total: Number(editing?.amount ?? editing?.total) || 0 }
     : calculate(form), [form, editing])
 
-  const load = useCallback(async () => {
+  const load = useCallback(async ({ silent = false } = {}) => {
     setLoading(true)
     try {
       if (isBackendMode && user?.role === 'client') {
@@ -114,15 +113,28 @@ export default function QuotationsPage() {
       setClients(scopeResourceRecords('clients', clientRecords, user))
       return true
     } catch (cause) {
-      notify(cause.message || 'Could not load quotations.', 'error')
+      if (!silent) notify(cause.message || 'Could not load quotations.', 'error')
       return false
     } finally {
       setLoading(false)
     }
   }, [notify, user])
   useEffect(() => {
-    const timer = window.setTimeout(() => { void load() }, 0)
-    return () => window.clearTimeout(timer)
+    let active = true
+    const initialTimer = window.setTimeout(() => { if (active) void load() }, 0)
+    const refreshWhenVisible = () => {
+      if (active && document.visibilityState === 'visible') void load({ silent: true })
+    }
+    const interval = window.setInterval(refreshWhenVisible, 15_000)
+    window.addEventListener('focus', refreshWhenVisible)
+    document.addEventListener('visibilitychange', refreshWhenVisible)
+    return () => {
+      active = false
+      window.clearTimeout(initialTimer)
+      window.clearInterval(interval)
+      window.removeEventListener('focus', refreshWhenVisible)
+      document.removeEventListener('visibilitychange', refreshWhenVisible)
+    }
   }, [load])
   useEffect(() => {
     if (!printing) return undefined
@@ -244,11 +256,10 @@ export default function QuotationsPage() {
   async function changeStatus(record, action) {
     setTransitioning(`${record.id}:${action}`)
     try {
-      const updated = action === 'send' ? await apiFor.quotations.send(record.id)
-        : action === 'approve' ? await apiFor.quotations.approve(record.id)
-          : await apiFor.quotations.reject(record.id)
+      if (action !== 'send') throw new Error('Clients must accept or reject quotations from their secure portal.')
+      const updated = await apiFor.quotations.send(record.id)
       setRecords((current) => current.map((item) => item.id === record.id ? updated : item))
-      notify(action === 'send' ? 'Quotation sent to the client portal.' : `Quotation ${action === 'approve' ? 'accepted' : 'rejected'}.`)
+      notify('Quotation sent to the client portal.')
     } catch (cause) {
       notify(cause.message || `Could not ${action} this quotation.`, 'error')
     } finally {
@@ -414,18 +425,18 @@ export default function QuotationsPage() {
       {loading ? <div className="loading-inline" role="status"><span className="spinner" aria-hidden="true" />Loading quotations…</div> : visibleRecords.length ? (
         <div className="table-scroll"><table className="data-table quotation-table"><thead><tr><th>Quotation no.</th><th>Client</th><th>Date</th><th>Valid until</th><th>Total amount</th><th>Status</th><th>Actions</th></tr></thead>
           <tbody>{visibleRecords.map((record) => {
-            const allowedStatuses = quotationStatusOptions(record, can('quotations.create') || can('quotations.approve'), user?.role === 'client' || can('quotations.approve'))
+            const allowedStatuses = quotationStatusOptions(record, can('quotations.create') || can('quotations.approve'))
             return <tr key={record.id}><td>{record.id}</td><td>{record.client}</td><td>{formatDate(record.issueDate)}</td><td>{formatDate(record.validUntil)}</td><td>{formatCurrency(record.amount ?? record.total)}</td><td>
-              <select className={`status-select quotation-status-select status-${record.status.toLowerCase().replaceAll(' ', '-')}`} aria-label={`Change status for quotation ${record.id}`} value={record.status} disabled={allowedStatuses.length === 1 || Boolean(transitioning)} onChange={(event) => {
-                const action = { Sent: 'send', Accepted: 'approve', Rejected: 'reject' }[event.target.value]
-                if (action) void changeStatus(record, action)
+              {user?.role === 'client' ? <span className={`badge badge-${record.status.toLowerCase().replaceAll(' ', '-')}`}>{record.status}</span> : <select className={`status-select quotation-status-select status-${record.status.toLowerCase().replaceAll(' ', '-')}`} aria-label={`Change status for quotation ${record.id}`} value={record.status} disabled={allowedStatuses.length === 1 || Boolean(transitioning)} onChange={(event) => {
+                if (event.target.value === 'Sent') void changeStatus(record, 'send')
               }}>
                 {allowedStatuses.map((value) => <option key={value} value={value}>{value}</option>)}
-              </select>
+              </select>}
             </td><td><div className="sales-module-row-actions quotation-row-actions">
               <button type="button" onClick={() => { setPreview(record); setPreviewSaved(true) }}><Eye size={16} />View</button>
               <button type="button" onClick={() => printRecord(record)}><Printer size={16} />Print</button>
               <button type="button" aria-label={`Download PDF for quotation ${record.id}`} disabled={Boolean(pdfLoading)} onClick={() => downloadPdfRecord(record)}><FileDown size={16} />{pdfLoading === record.id ? 'Preparing…' : 'PDF'}</button>
+              {can('invoices.manage') && record.status === 'Accepted' && (record.items?.length || record.lineItems?.length) > 0 && <button type="button" onClick={() => navigate('/invoices', { state: { invoiceSource: { kind: 'quotation', record } } })}>Create invoice</button>}
               {can('quotations.create') && record.status === 'Draft' && <>
                 <button type="button" onClick={() => startEdit(record)}>Edit</button>
                 <button className="quotation-delete-action" type="button" disabled={deleting === record.id} onClick={() => deleteDraft(record)}><Trash2 size={16} />{deleting === record.id ? 'Deleting…' : 'Delete'}</button>

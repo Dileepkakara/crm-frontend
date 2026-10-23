@@ -5,7 +5,7 @@ export default function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
   const location = useLocation()
   if (loading) return <div className="loading-screen" role="status" aria-label="Loading"><span className="spinner" aria-hidden="true" /></div>
-  if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />
+  if (!user) return <Navigate to={location.pathname.startsWith('/client-portal') ? '/client-login' : '/login'} replace state={{ from: location.pathname }} />
   if (user.mustChangePassword && location.pathname !== '/change-password') {
     return <Navigate to="/change-password" replace />
   }

@@ -7,11 +7,17 @@ export function hasPermission(user, permission) {
 }
 
 export function hasAnyPermission(user, permissions = []) {
-  return permissions.some((permission) => hasPermission(user, permission))
+  const required = typeof permissions === 'string'
+    ? [permissions]
+    : Array.isArray(permissions) ? permissions : []
+  return required.some((permission) => hasPermission(user, permission))
 }
 
 export function hasAllPermissions(user, permissions = []) {
-  return permissions.every((permission) => hasPermission(user, permission))
+  const required = typeof permissions === 'string'
+    ? [permissions]
+    : Array.isArray(permissions) ? permissions : []
+  return required.every((permission) => hasPermission(user, permission))
 }
 
 export function canAccessRoute(user, pathname) {

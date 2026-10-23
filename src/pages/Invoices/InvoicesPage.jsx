@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Download, FileDown, Search, X } from 'lucide-react'
 import { useAuth } from '../../auth/useAuth'
 import { usePermissions } from '../../auth/usePermissions'
 import { apiFor, scopeResourceRecords } from '../../api/resourcesApi'
 import { useApp } from '../../context/useApp'
-import { Button, PageHeader } from '../../components/common/UI'
+import { Badge, Button, PageHeader } from '../../components/common/UI'
 import ClientSearchSelect from '../../components/common/ClientSearchSelect'
 import SalesDocument from '../SalesFinance/SalesDocument'
 import { canAccessRecord } from '../../services/permissionsService'
@@ -28,6 +29,55 @@ const blankForm = (preferences = {}) => ({
   bankDetails: preferences.bankDetails || '',
 })
 
+function formFromSource(source, preferences, clients) {
+  const next = blankForm(preferences)
+  if (!source?.record) return next
+  const sourceRecord = source.record
+  const quotation = source.kind === 'agreement'
+    ? sourceRecord.quotationSnapshot || sourceRecord.acceptedSnapshot?.quotationSnapshot || {}
+    : sourceRecord.acceptedSnapshot || sourceRecord
+  const sourceItems = quotation.items?.length ? quotation.items : quotation.lineItems || []
+  const clientId = sourceRecord.clientId || quotation.clientId || ''
+  const client = clients.find((item) => item.id === clientId)
+  return {
+    ...next,
+    sourceContractTotal: Number(quotation.total ?? quotation.amount) || 0,
+    clientId,
+    client: client?.company || client?.name || sourceRecord.client || quotation.client || '',
+    billingName: quotation.billingName || client?.name || '',
+    billingAddress: quotation.billingAddress || client?.address || '',
+    customerGstin: quotation.customerGstin || client?.gstin || '',
+    contactEmail: quotation.contactEmail || client?.email || '',
+    contactPhone: quotation.contactPhone || client?.phone || '',
+    project: source.kind === 'agreement' ? sourceRecord.project : quotation.title || '',
+    agreementId: source.kind === 'agreement' ? sourceRecord.id : '',
+    quotationId: source.kind === 'quotation' ? sourceRecord.id : sourceRecord.quotationId || '',
+    items: sourceItems.map((item) => ({
+      description: item.description || '',
+      quantity: String(item.quantity ?? 1),
+      rate: String(item.rate ?? ''),
+    })),
+    discount: String(quotation.discount ?? 0),
+    gstEnabled: Boolean(quotation.gstEnabled),
+    sgstEnabled: quotation.sgstEnabled ?? true,
+    cgstEnabled: quotation.cgstEnabled ?? true,
+    sgstRate: String(quotation.sgstRate ?? ''),
+    cgstRate: String(quotation.cgstRate ?? ''),
+    terms: quotation.terms || '',
+    status: 'Draft',
+  }
+}
+
+function sourceClientName(source, clients) {
+  if (!source?.record) return ''
+  const sourceRecord = source.record
+  const quotation = source.kind === 'agreement'
+    ? sourceRecord.quotationSnapshot || sourceRecord.acceptedSnapshot?.quotationSnapshot || {}
+    : sourceRecord.acceptedSnapshot || sourceRecord
+  const client = clients.find((item) => item.id === sourceRecord.clientId)
+  return client?.company || client?.name || sourceRecord.client || quotation.client || ''
+}
+
 function calculate(form) {
   const subtotal = form.items.reduce((sum, item) => sum + Number(item.quantity || 0) * Number(item.rate || 0), 0)
   const discount = Math.min(subtotal, Math.max(0, Number(form.discount) || 0))
@@ -43,6 +93,7 @@ function toForm(record, preferences) {
   const legacy = lineItems.length === 0 && !(record.description && record.quantity !== undefined && record.rate !== undefined)
   return {
     ...blankForm(preferences), ...record, id: record.id,
+    sourceContractTotal: Number(record.sourceSnapshot?.quotation?.total ?? record.sourceSnapshot?.agreement?.total) || 0,
     items: lineItems.length ? lineItems.map((item) => ({
       description: item.description || '', quantity: String(item.quantity ?? 1), rate: String(item.rate ?? ''),
     })) : legacy ? [blankItem()] : [{ description: record.description, quantity: String(record.quantity), rate: String(record.rate) }],
@@ -61,29 +112,35 @@ export default function InvoicesPage() {
   const { user } = useAuth()
   const { hasPermission: can } = usePermissions()
   const { notify } = useApp()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const [preferences, setPreferences] = useState(() => isBackendMode ? {} : readPreferences())
   const [records, setRecords] = useState([])
   const [clients, setClients] = useState([])
   const [payments, setPayments] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('All statuses')
-  const [form, setForm] = useState(null)
-  const [clientQuery, setClientQuery] = useState('')
+  const [form, setForm] = useState(() => location.state?.invoiceSource
+    ? formFromSource(location.state.invoiceSource, preferences, [])
+    : null)
+  const [clientQuery, setClientQuery] = useState(() => sourceClientName(location.state?.invoiceSource, []))
   const [editing, setEditing] = useState(null)
   const [preview, setPreview] = useState(null)
   const [previewSaved, setPreviewSaved] = useState(false)
   const [previewPayments, setPreviewPayments] = useState([])
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [issuing, setIssuing] = useState('')
   const [printing, setPrinting] = useState(false)
   const [pdfLoading, setPdfLoading] = useState('')
-  const [preferences, setPreferences] = useState(() => isBackendMode ? {} : readPreferences())
   const totals = useMemo(() => isUntouchedLegacy(form || {})
     ? { subtotal: 0, discount: 0, taxableValue: 0, tax: Number(editing?.tax) || 0, total: Number(editing?.total ?? editing?.amount) || 0 }
     : calculate(form || blankForm()), [form, editing])
 
-  const load = useCallback(async () => {
-    setLoading(true)
+  const load = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true)
     try {
       if (isBackendMode && user?.role === 'client') {
         const [{ data: portal }, companySettings] = await Promise.all([
@@ -93,6 +150,7 @@ export default function InvoicesPage() {
         setRecords(portal.invoices)
         setClients([portal.client])
         setPayments(portal.payments)
+        setLoadError('')
         return
       }
       const [invoiceRecords, clientRecords, paymentRecords, companySettings] = await Promise.all([
@@ -102,15 +160,31 @@ export default function InvoicesPage() {
       setRecords(scopeResourceRecords('invoices', invoiceRecords, user))
       setClients(scopeResourceRecords('clients', clientRecords, user))
       setPayments(paymentRecords)
+      setLoadError('')
     } catch (cause) {
-      notify(cause.message || 'Could not load invoices.', 'error')
+      const message = cause.message || 'Could not load invoices.'
+      setLoadError(message)
+      if (!silent) notify(message, 'error')
     } finally {
       setLoading(false)
     }
   }, [notify, user])
   useEffect(() => {
-    const timer = window.setTimeout(() => { void load() }, 0)
-    return () => window.clearTimeout(timer)
+    let active = true
+    const initialTimer = window.setTimeout(() => { if (active) void load() }, 0)
+    const refreshWhenVisible = () => {
+      if (active && document.visibilityState === 'visible') void load({ silent: true })
+    }
+    const interval = window.setInterval(refreshWhenVisible, 30_000)
+    window.addEventListener('focus', refreshWhenVisible)
+    document.addEventListener('visibilitychange', refreshWhenVisible)
+    return () => {
+      active = false
+      window.clearTimeout(initialTimer)
+      window.clearInterval(interval)
+      window.removeEventListener('focus', refreshWhenVisible)
+      document.removeEventListener('visibilitychange', refreshWhenVisible)
+    }
   }, [load])
   useEffect(() => {
     if (!printing) return undefined
@@ -130,12 +204,15 @@ export default function InvoicesPage() {
     (status === 'All statuses' || record.status === status)
     && `${record.id} ${record.client} ${record.project}`.toLowerCase().includes(search.toLowerCase()))
 
-  function startCreate() {
+  function startCreate(source = null) {
     setEditing(null)
-    setForm(blankForm(preferences))
-    setClientQuery('')
+    setForm(formFromSource(source, preferences, clients))
+    setClientQuery(sourceClientName(source, clients))
     setError('')
   }
+  useEffect(() => {
+    if (location.state?.invoiceSource) navigate(location.pathname, { replace: true, state: null })
+  }, [location.pathname, location.state, navigate])
   function startEdit(record) {
     if (!can('invoices.manage') || !canAccessRecord('invoices', record, user)) {
       notify('Your role cannot edit this invoice.', 'error')
@@ -166,10 +243,12 @@ export default function InvoicesPage() {
   }
   function makeDocument() {
     const legacy = isUntouchedLegacy(form)
-    if (legacy) return { ...editing, ...form, items: undefined, lineItems: undefined, preserveLegacyTotal: undefined }
+    const documentForm = { ...form }
+    delete documentForm.sourceContractTotal
+    if (legacy) return { ...editing, ...documentForm, status: editing?.status || form.status || 'Draft', items: undefined, lineItems: undefined, preserveLegacyTotal: undefined }
     const calculated = calculate(form)
     return {
-      ...form, preserveLegacyTotal: undefined,
+      ...documentForm, status: editing?.status || form.status || 'Draft', preserveLegacyTotal: undefined,
       items: form.items.map((item) => ({
         description: item.description.trim(),
         quantity: Number(item.quantity),
@@ -186,7 +265,6 @@ export default function InvoicesPage() {
       cgstAmount: calculated.cgstAmount,
       total: calculated.total,
       amount: calculated.total,
-      status: editing?.status || 'Issued',
     }
   }
   function openPreview() {
@@ -218,24 +296,50 @@ export default function InvoicesPage() {
       setError('Enter a description, positive quantity, and valid unit price for each invoice item.')
       return
     }
+    if (sourceLocked && form.sourceContractTotal > 0) {
+      const allocated = records
+        .filter((record) => record.id !== editing?.id
+          && record.status !== 'Cancelled'
+          && (form.quotationId ? record.quotationId === form.quotationId : record.agreementId === form.agreementId))
+        .reduce((sum, record) => sum + Number(record.total ?? record.amount ?? 0), 0)
+      const remaining = Math.max(0, form.sourceContractTotal - allocated)
+      if (calculate(form).total > remaining + 0.005) {
+        setError(`This invoice exceeds the remaining accepted contract amount of ${formatCurrency(remaining)}.`)
+        return
+      }
+    }
     setSaving(true)
     try {
       const document = makeDocument()
-      let saved = editing
+      const saved = editing
         ? await apiFor.invoices.update(editing.id, document)
         : await apiFor.invoices.create(document)
-      if (isBackendMode && saved.status === 'Draft') saved = await apiFor.invoices.issue(saved.id)
       await load()
       setForm(null)
       setEditing(null)
       setPreview(saved)
       setPreviewSaved(true)
       setPreviewPayments(payments.filter((payment) => payment.invoiceId === saved.id))
-      notify(editing ? 'Invoice updated.' : 'Invoice saved. Record payments in the existing Payments module.')
+      notify(editing ? 'Invoice draft updated.' : 'Draft invoice saved. Issue it when ready.')
     } catch (cause) {
       notify(cause.message || 'Could not save this invoice.', 'error')
     } finally {
       setSaving(false)
+    }
+  }
+  async function issueDraft(record) {
+    setIssuing(record.id)
+    try {
+      const saved = await apiFor.invoices.issue(record.id)
+      await load()
+      setPreview(saved)
+      setPreviewSaved(true)
+      setPreviewPayments(payments.filter((payment) => payment.invoiceId === saved.id))
+      notify('Invoice issued.')
+    } catch (cause) {
+      notify(cause.message || 'Could not issue this invoice.', 'error')
+    } finally {
+      setIssuing('')
     }
   }
   function printRecord(record) {
@@ -281,6 +385,14 @@ export default function InvoicesPage() {
     notify('CSV export downloaded.')
   }
 
+  const sourceLocked = Boolean(form?.quotationId || form?.agreementId)
+  const sourceInvoices = sourceLocked
+    ? records.filter((record) => record.id !== editing?.id
+      && record.status !== 'Cancelled'
+      && (form.quotationId ? record.quotationId === form.quotationId : record.agreementId === form.agreementId))
+    : []
+  const sourceAllocated = sourceInvoices.reduce((sum, record) => sum + Number(record.total ?? record.amount ?? 0), 0)
+  const sourceRemaining = Math.max(0, (Number(form?.sourceContractTotal) || 0) - sourceAllocated)
   if (preview) {
     const paid = getInvoicePaid(preview.id, previewPayments)
     const total = Number(preview.total ?? preview.amount) || 0
@@ -307,7 +419,7 @@ export default function InvoicesPage() {
     </div>
   }
 
-  if (!can('invoices.view') && !can('invoices.view.own')) return <div className="page"><div className="sales-module-empty">You do not have access to invoices.</div></div>
+  if (!can('invoices.view') && !can('invoices.view.own') && !can('invoices.manage')) return <div className="page"><div className="sales-module-empty">You do not have access to invoices.</div></div>
   if (form) return <div className="page sales-document-page">
     <PageHeader title={editing ? `Edit invoice ${editing.id}` : 'Create invoice'} description="Create an invoice document. Payments remain recorded in the Payments module." />
     <div className="sales-builder-brand" aria-label="Design Blocks">
@@ -319,6 +431,13 @@ export default function InvoicesPage() {
         <label className="form-field"><span>Invoice date</span><input type="date" value={form.issueDate} onChange={(event) => setForm({ ...form, issueDate: event.target.value })} /></label>
         <label className="form-field"><span>Due date</span><input type="date" value={form.dueDate} onChange={(event) => setForm({ ...form, dueDate: event.target.value })} /></label>
       </div></section>
+      {sourceLocked && <p className="form-note">
+        This is a separate invoice linked to accepted {form.quotationId ? `quotation ${form.quotationId}` : `work order ${form.agreementId}`}.
+        Adjust the service lines, quantities, prices, discount, tax, and terms for this billing (for example, an advance invoice of ₹20,000).
+        {form.sourceContractTotal > 0 && <> Accepted contract: {formatCurrency(form.sourceContractTotal)}; previously invoiced: {formatCurrency(sourceAllocated)}; remaining: {formatCurrency(sourceRemaining)}.</>}
+        {' '}The client and project stay linked to the accepted source; the API checks the contract limit when saving.
+      </p>}
+      <fieldset className="sales-source-locked" disabled={sourceLocked}>
       <section className="sales-module-section"><h2>2. Recipient details</h2><div className="sales-module-fields">
         <ClientSearchSelect clients={clients} selectedId={form.clientId} query={clientQuery}
           onQueryChange={handleClientSearch} onSelect={chooseClient} />
@@ -329,6 +448,7 @@ export default function InvoicesPage() {
         <label className="form-field"><span>Contact phone</span><input value={form.contactPhone} onChange={(event) => setForm({ ...form, contactPhone: event.target.value })} /></label>
         <label className="form-field"><span>Project / service</span><input value={form.project} onChange={(event) => setForm({ ...form, project: event.target.value })} /></label>
       </div></section>
+      </fieldset>
       <section className="sales-module-section"><div className="sales-module-toolbar"><h2>3. Items</h2><Button className="sales-builder-add" type="button" onClick={() => setForm({ ...form, preserveLegacyTotal: false, items: [...form.items, blankItem()] })}>Add item</Button></div>
         {isUntouchedLegacy(form) && <p className="form-note">This existing invoice has a recorded total but no item breakdown. It will be preserved unless you add itemized details.</p>}
         <div className="sales-module-items">{form.items.map((item, index) => <div className="sales-module-item" key={index}>
@@ -353,11 +473,11 @@ export default function InvoicesPage() {
         {form.gstEnabled && form.sgstEnabled && <div><dt>SGST ({Number(form.sgstRate) || 0}%)</dt><dd>{formatCurrency(totals.sgstAmount)}</dd></div>}
         {form.gstEnabled && form.cgstEnabled && <div><dt>CGST ({Number(form.cgstRate) || 0}%)</dt><dd>{formatCurrency(totals.cgstAmount)}</dd></div>}
         <div className="sales-doc-total"><dt>Total Price</dt><dd>{formatCurrency(totals.total)}</dd></div>
-      </dl></div></section>
+      </dl>      </div></section>
       <section className="sales-module-section"><h2>5. Terms and conditions</h2><label className="form-field"><span>Terms</span><textarea rows="3" value={form.terms} onChange={(event) => setForm({ ...form, terms: event.target.value })} /></label></section>
       <section className="sales-module-section"><h2>6. Company and bank details</h2><div className="sales-module-fields">
         <label className="form-field"><span>Company name</span><input value={preferences.companyName || 'Design Blocks'} readOnly /></label>
-        <label className="form-field"><span>Company logo</span><div className="sales-module-logo"><span className="sales-doc-brand">D</span><span>Existing Design Blocks brand mark</span></div></label>
+        <label className="form-field"><span>Company logo</span><div className="sales-module-logo"><img src="/design-blocks-logo.png" alt="Design Blocks logo" /></div></label>
         <label className="form-field"><span>Company GSTIN</span><input value={form.companyGstin} onChange={(event) => setForm({ ...form, companyGstin: event.target.value })} /></label>
         <label className="form-field field-wide"><span>Company address</span><textarea rows="2" value={form.companyAddress} onChange={(event) => setForm({ ...form, companyAddress: event.target.value })} /></label>
         <label className="form-field field-wide"><span>Bank details (optional)</span><textarea rows="3" value={form.bankDetails} onChange={(event) => setForm({ ...form, bankDetails: event.target.value })} placeholder="Enter only verified business bank details." /></label>
@@ -378,13 +498,14 @@ export default function InvoicesPage() {
         <label className="list-search"><Search size={18} aria-hidden="true" /><input aria-label="Search invoices" placeholder="Search invoice or client…" value={search} onChange={(event) => setSearch(event.target.value)} />
           {search && <button className="list-search-clear" type="button" aria-label="Clear invoice search" onClick={() => setSearch('')}><X size={17} /></button>}
         </label>
-        <select aria-label="Filter invoices by status" value={status} onChange={(event) => setStatus(event.target.value)}>{['All statuses', 'Draft', 'Issued', 'Overdue', 'Partially Paid', 'Paid'].map((value) => <option key={value}>{value}</option>)}</select>
+        <select aria-label="Filter invoices by status" value={status} onChange={(event) => setStatus(event.target.value)}>{['All statuses', 'Draft', 'Issued', 'Overdue', 'Partially Paid', 'Paid', 'Cancelled'].map((value) => <option key={value}>{value}</option>)}</select>
       </div>
-      {loading ? <div className="loading-inline">Loading invoices…</div> : visibleRecords.length ? <div className="table-scroll"><table className="data-table"><thead><tr><th>Invoice no.</th><th>Client</th><th>Project / service</th><th>Issue date</th><th>Due date</th><th>Total</th><th>Balance due</th><th>Status</th><th>Actions</th></tr></thead>
+      {loadError && <div className="resource-load-error" role="alert"><span>{loadError}</span><Button type="button" variant="secondary" onClick={() => load()}>Retry</Button></div>}
+      {loading ? <div className="loading-inline">Loading invoices…</div> : visibleRecords.length ? <div className="table-scroll"><table className="data-table"><thead><tr><th>Invoice no.</th><th>Client</th><th>Project / service</th><th>Issue date</th><th>Due date</th><th>Total</th><th>Amount paid</th><th>Balance due</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody>{visibleRecords.map((record) => {
           const paid = getInvoicePaid(record.id, payments)
           const total = Number(record.total ?? record.amount) || 0
-          return <tr key={record.id}><td>{record.id}</td><td>{record.client}</td><td>{record.project}</td><td>{formatDate(record.issueDate)}</td><td>{formatDate(record.dueDate)}</td><td>{formatCurrency(total)}</td><td>{formatCurrency(Math.max(0, total - paid))}</td><td>{record.status}</td><td><div className="sales-module-row-actions"><button onClick={() => { setPreview(record); setPreviewSaved(true); setPreviewPayments(payments.filter((payment) => payment.invoiceId === record.id)) }}>View</button><button onClick={() => printRecord(record)}>Print</button><button aria-label={`Download PDF for invoice ${record.id}`} disabled={Boolean(pdfLoading)} onClick={() => downloadPdfRecord(record)}><FileDown size={16} />{pdfLoading === record.id ? 'Preparing…' : 'PDF'}</button>{can('invoices.manage') && <button onClick={() => startEdit(record)}>Edit</button>}</div></td></tr>
+          return <tr key={record.id}><td>{record.id}</td><td>{record.client}</td><td>{record.project}</td><td>{formatDate(record.issueDate)}</td><td>{formatDate(record.dueDate)}</td><td>{formatCurrency(total)}</td><td>{formatCurrency(paid)}</td><td>{formatCurrency(Math.max(0, total - paid))}</td><td><Badge>{record.status}</Badge>{record.clientDecision?.status && <small className="invoice-client-decision">Client: {record.clientDecision.status}</small>}</td><td><div className="sales-module-row-actions"><button onClick={() => { setPreview(record); setPreviewSaved(true); setPreviewPayments(payments.filter((payment) => payment.invoiceId === record.id)) }}>View</button><button onClick={() => printRecord(record)}>Print</button><button aria-label={`Download PDF for invoice ${record.id}`} disabled={Boolean(pdfLoading)} onClick={() => downloadPdfRecord(record)}><FileDown size={16} />{pdfLoading === record.id ? 'Preparing…' : 'PDF'}</button>{can('invoices.manage') && record.status === 'Draft' && <button disabled={Boolean(issuing)} onClick={() => issueDraft(record)}>{issuing === record.id ? 'Issuing…' : 'Issue'}</button>}{can('invoices.manage') && <button onClick={() => startEdit(record)}>Edit</button>}</div></td></tr>
         })}</tbody></table></div> : <div className="sales-module-empty">No invoices found.</div>}
     </section>
   </div>

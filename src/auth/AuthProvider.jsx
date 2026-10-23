@@ -23,8 +23,17 @@ export function AuthProvider({ children }) {
     return () => { active = false }
   }, [])
 
-  const login = useCallback(async (email, password) => {
-    const current = await authService.login(email, password)
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      clearSession()
+      setUser(null)
+    }
+    window.addEventListener('crm:session-expired', handleSessionExpired)
+    return () => window.removeEventListener('crm:session-expired', handleSessionExpired)
+  }, [])
+
+  const login = useCallback(async (email, password, clientOnly = false) => {
+    const current = await authService.login(email, password, clientOnly)
     if (!isBackendMode) writeSessionId(current.id)
     setUser(current)
     return current

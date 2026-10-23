@@ -79,14 +79,14 @@ Mock mode is the default and makes no network requests:
 VITE_API_MODE=mock
 ```
 
-Backend mode uses the local API by default while running Vite in development:
+Backend mode uses the local API by default while running Vite in development. Keep `frontend/.env.local` pointed at `http://localhost:5000/api/v1` when using a local backend. The local backend allows HTTP origins on localhost/loopback during development, including Vite's fallback port such as `5174`; production only permits its configured frontend domains.
 
 ```env
 VITE_API_MODE=backend
 VITE_API_BASE_URL=http://localhost:5000
 ```
 
-The API base URL includes `/api/v1`; for example, use `http://localhost:5000/api/v1` to run against a local API. To run the local frontend against the live API, create `frontend/.env.local` with `VITE_API_MODE=backend` and `VITE_API_BASE_URL=https://crm-backend-9lji.onrender.com/api/v1`. Restart Vite after changing environment variables. The deployed API must allow the local frontend origin in its CORS configuration. For a deployed frontend, set `VITE_API_BASE_URL` in the hosting provider and allow that frontend origin in the backend's `FRONTEND_URL`. Endpoint paths are centralized in `src/api/endpoints.js`.
+The API base URL includes `/api/v1`; for example, use `http://localhost:5000/api/v1` to run against a local API. To intentionally run the local frontend against the live API, configure `VITE_API_BASE_URL=https://crm-backend-9lji.onrender.com/api/v1` and allow the local frontend origin in the deployed backend CORS configuration. Restart Vite after changing environment variables. For a deployed frontend, set `VITE_API_BASE_URL` in the hosting provider and allow that frontend origin in the backend's `FRONTEND_URL`. Endpoint paths are centralized in `src/api/endpoints.js`.
 
 ## Simulated behavior
 
