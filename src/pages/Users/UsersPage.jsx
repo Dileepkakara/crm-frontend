@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { KeyRound, Pencil, Plus, Search, ShieldCheck, ToggleLeft, ToggleRight, UsersRound, X } from 'lucide-react'
+import { KeyRound, Pencil, Plus, Search, ShieldCheck, ToggleLeft, ToggleRight, Trash2, UsersRound, X } from 'lucide-react'
 import { authService } from '../../auth/authService'
 import { useAuth } from '../../auth/useAuth'
 import { usePermissions } from '../../auth/usePermissions'
@@ -35,6 +35,8 @@ export default function UsersPage() {
   const [newPassword, setNewPassword] = useState('')
   const [passwordError, setPasswordError] = useState('')
   const [savingPassword, setSavingPassword] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [deletingUser, setDeletingUser] = useState(false)
 
   const load = useCallback(async () => {
     try {
@@ -165,6 +167,20 @@ export default function UsersPage() {
       setSavingPassword(false)
     }
   }
+  async function deleteUser() {
+    if (!deleteTarget || deletingUser) return
+    setDeletingUser(true)
+    try {
+      await authService.deleteUser(deleteTarget.id)
+      setDeleteTarget(null)
+      notify(`${deleteTarget.name}'s account was permanently deleted.`)
+      await load()
+    } catch (cause) {
+      notify(cause.message || 'Could not delete the user account.', 'error')
+    } finally {
+      setDeletingUser(false)
+    }
+  }
 
   return <div className="page">
     <PageHeader title="Users & access" description={isBackendMode ? 'Manage employee accounts, client access, and assigned CRM roles.' : 'Manage local demo accounts and their assigned CRM roles.'}
@@ -177,7 +193,7 @@ export default function UsersPage() {
         <select aria-label="Filter users by account status" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option>All statuses</option><option>Active</option><option>Inactive</option></select></div>
       <div className="table-scroll"><table className="data-table"><thead><tr><th>User</th><th>Email</th><th>Role</th><th>Status</th><th className="no-print">Actions</th></tr></thead>
         <tbody>{visibleUsers.map((person) => <tr key={person.id}><td><strong className="table-primary">{person.name}</strong></td><td>{person.email}</td><td>{roles.find((role) => role.key === person.role)?.name || person.roleLabel || 'Invalid role'}</td><td><span className={`badge badge-${person.status.toLowerCase()}`}>{person.status}</span></td>
-          <td className="no-print">{hasPermission('users.manage') && <div className="row-actions"><button title="Edit user" aria-label={`Edit ${person.name}`} onClick={() => openEditor(person)}><Pencil size={16} /></button>{isBackendMode && <button title="Reset password" aria-label={`Reset password for ${person.name}`} onClick={() => { setPasswordTarget(person); setNewPassword(''); setPasswordError('') }}><KeyRound size={16} /></button>}<button title={person.status === 'Active' ? 'Deactivate user' : 'Activate user'} aria-label={`${person.status === 'Active' ? 'Deactivate' : 'Activate'} ${person.name}`} className={person.status === 'Active' ? 'danger-action' : ''} onClick={() => toggleStatus(person)}>{person.status === 'Active' ? <ToggleRight size={17} /> : <ToggleLeft size={17} />}</button></div>}</td>
+          <td className="no-print">{hasPermission('users.manage') && <div className="row-actions"><button title="Edit user" aria-label={`Edit ${person.name}`} onClick={() => openEditor(person)}><Pencil size={16} /></button>{isBackendMode && <button title="Reset password" aria-label={`Reset password for ${person.name}`} onClick={() => { setPasswordTarget(person); setNewPassword(''); setPasswordError('') }}><KeyRound size={16} /></button>}<button title={person.status === 'Active' ? 'Deactivate user' : 'Activate user'} aria-label={`${person.status === 'Active' ? 'Deactivate' : 'Activate'} ${person.name}`} className={person.status === 'Active' ? 'danger-action' : ''} onClick={() => toggleStatus(person)}>{person.status === 'Active' ? <ToggleRight size={17} /> : <ToggleLeft size={17} />}</button>{currentUser.role === ROLES.SUPER_ADMIN && <button title={person.id === currentUser.id ? 'You cannot delete your own account' : 'Delete user'} aria-label={`Delete ${person.name}`} className="danger-action" disabled={person.id === currentUser.id} onClick={() => setDeleteTarget(person)}><Trash2 size={16} /></button>}</div>}</td>
         </tr>)}</tbody></table></div>
       {!visibleUsers.length && <div className="empty-state"><UsersRound size={24} /><strong>No demo users found</strong><span>Change the search term or create a user.</span></div>}
     </section>
@@ -214,6 +230,12 @@ export default function UsersPage() {
         {passwordError && <p className="form-error" role="alert">{passwordError}</p>}
         <div className="modal-actions"><Button type="button" variant="secondary" onClick={() => setPasswordTarget(null)}>Cancel</Button><Button type="submit" disabled={savingPassword}>{savingPassword ? 'Saving…' : 'Reset password'}</Button></div>
       </form>
+    </Modal>}
+    {deleteTarget && <Modal title={`Delete ${deleteTarget.name}'s account?`} description="This permanently removes the user's login account. Existing CRM records and audit history are retained." onClose={() => { if (!deletingUser) setDeleteTarget(null) }}>
+      <div className="record-form">
+        <p>This action cannot be undone. The user will immediately lose access, and their name may remain in existing record and audit history.</p>
+        <div className="modal-actions"><Button type="button" variant="secondary" disabled={deletingUser} onClick={() => setDeleteTarget(null)}>Cancel</Button><Button type="button" variant="danger" disabled={deletingUser} onClick={() => void deleteUser()}>{deletingUser ? 'Deleting…' : 'Delete account'}</Button></div>
+      </div>
     </Modal>}
   </div>
 }

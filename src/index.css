@@ -771,6 +771,8 @@ a { color: inherit; text-decoration: none; }
 .quotation-row-actions button:disabled { opacity: .55; cursor: wait; }
 .quotation-row-actions .quotation-delete-action { color: #b91c1c; }
 .quotation-row-actions .quotation-delete-action:hover:not(:disabled) { color: #991b1b; background: #fef2f2; border-color: #fecaca; }
+.invoices-page .invoice-row-actions { flex-wrap: nowrap; min-width: 430px; }
+.invoices-page .invoice-row-actions button { white-space: nowrap; }
 .quotation-page .page-heading h1, .quotations-page .page-heading h1 { color: #111827; font-size: clamp(30px, 2.3vw, 36px); font-weight: 750; letter-spacing: -.025em; }
 .quotations-page .page-heading p { color: #536176; font-size: 16px; }
 .quotation-document-page .sales-module-section h2 { color: #111827; font-size: 21px; font-weight: 750; }

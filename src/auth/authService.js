@@ -91,6 +91,14 @@ export const authService = {
     if (!isBackendMode) throw new Error('Password resets are available only for backend accounts.')
     await apiClient.endpoint(`/users/${encodeURIComponent(id)}/password`, 'PUT', { newPassword })
   },
+  deleteUser: async (id) => {
+    if (isBackendMode) return (await apiClient.delete('users', id)).data
+    const users = readUsers()
+    const remaining = users.filter((user) => user.id !== id)
+    if (remaining.length === users.length) throw new Error(`User ${id} was not found.`)
+    saveUsers(remaining)
+    return { id }
+  },
   removeUser: async (id, currentUserId) => {
     if (id === currentUserId) throw new Error('You cannot deactivate your own signed-in account.')
     if (isBackendMode) {

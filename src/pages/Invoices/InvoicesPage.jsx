@@ -487,7 +487,7 @@ export default function InvoicesPage() {
     </form>
   </div>
 
-  return <div className="page">
+  return <div className="page invoices-page">
     <PageHeader title="Invoices" description="Create, review, and print client invoices."
       actions={<>
         <Button variant="secondary" disabled={loading || visibleRecords.length === 0} onClick={exportCsv}><Download size={16} /> Export</Button>
@@ -505,7 +505,7 @@ export default function InvoicesPage() {
         <tbody>{visibleRecords.map((record) => {
           const paid = getInvoicePaid(record.id, payments)
           const total = Number(record.total ?? record.amount) || 0
-          return <tr key={record.id}><td>{record.id}</td><td>{record.client}</td><td>{record.project}</td><td>{formatDate(record.issueDate)}</td><td>{formatDate(record.dueDate)}</td><td>{formatCurrency(total)}</td><td>{formatCurrency(paid)}</td><td>{formatCurrency(Math.max(0, total - paid))}</td><td><Badge>{record.status}</Badge>{record.clientDecision?.status && <small className="invoice-client-decision">Client: {record.clientDecision.status}</small>}</td><td><div className="sales-module-row-actions"><button onClick={() => { setPreview(record); setPreviewSaved(true); setPreviewPayments(payments.filter((payment) => payment.invoiceId === record.id)) }}>View</button><button onClick={() => printRecord(record)}>Print</button><button aria-label={`Download PDF for invoice ${record.id}`} disabled={Boolean(pdfLoading)} onClick={() => downloadPdfRecord(record)}><FileDown size={16} />{pdfLoading === record.id ? 'Preparing…' : 'PDF'}</button>{can('invoices.manage') && record.status === 'Draft' && <button disabled={Boolean(issuing)} onClick={() => issueDraft(record)}>{issuing === record.id ? 'Issuing…' : 'Issue'}</button>}{can('invoices.manage') && <button onClick={() => startEdit(record)}>Edit</button>}</div></td></tr>
+          return <tr key={record.id}><td>{record.id}</td><td>{record.client}</td><td>{record.project}</td><td>{formatDate(record.issueDate)}</td><td>{formatDate(record.dueDate)}</td><td>{formatCurrency(total)}</td><td>{formatCurrency(paid)}</td><td>{formatCurrency(Math.max(0, total - paid))}</td><td><Badge>{record.status}</Badge>{record.clientDecision?.status && <small className="invoice-client-decision">Client: {record.clientDecision.status}</small>}</td><td><div className="sales-module-row-actions quotation-row-actions invoice-row-actions"><button onClick={() => { setPreview(record); setPreviewSaved(true); setPreviewPayments(payments.filter((payment) => payment.invoiceId === record.id)) }}>View</button><button onClick={() => printRecord(record)}>Print</button><button aria-label={`Download PDF for invoice ${record.id}`} disabled={Boolean(pdfLoading)} onClick={() => downloadPdfRecord(record)}><FileDown size={16} />{pdfLoading === record.id ? 'Preparing…' : 'PDF'}</button>{can('invoices.manage') && record.status === 'Draft' && <button disabled={Boolean(issuing)} onClick={() => issueDraft(record)}>{issuing === record.id ? 'Issuing…' : 'Issue'}</button>}{can('invoices.manage') && <button onClick={() => startEdit(record)}>Edit</button>}</div></td></tr>
         })}</tbody></table></div> : <div className="sales-module-empty">No invoices found.</div>}
     </section>
   </div>
