@@ -126,10 +126,9 @@ export default function SalesDocument({
             </div>
             <CompanyBrand name={companyDetails.name} />
           </div>
-          {!isFinancialDocument && <div className="sales-doc-meta">{metadata}</div>}
+          <div className="sales-doc-meta">{metadata}</div>
         </div>
       </div>
-      {isFinancialDocument && <div className="sales-doc-meta">{metadata}</div>}
 
       {isWorkOrder ? <div className="sales-doc-work-details">
         <div className="sales-doc-work-title">{record.project || 'Work order'}</div>
@@ -155,10 +154,11 @@ export default function SalesDocument({
             </tr>) : <tr><td>1</td><td>{hasNoItemDetails ? 'Itemized details not recorded' : record.title || '—'}</td><td>—</td><td>—</td><td>{formatCurrency(total)}</td></tr>}
             <tr className="sales-doc-tax-row"><td colSpan="3"></td><th>Subtotal</th><td>{formatCurrency(subtotal || total)}</td></tr>
             <tr className="sales-doc-total-row"><td colSpan="3"></td><th>Taxable Value</th><td>{formatCurrency(taxable || total)}</td></tr>
-            {record.gstEnabled && record.sgstEnabled && <tr className="sales-doc-tax-row"><td colSpan="3"></td><th>SGST ({Number(record.sgstRate) || 0}%)</th><td>{formatCurrency(sgst)}</td></tr>}
-            {record.gstEnabled && record.cgstEnabled && <tr className="sales-doc-tax-row"><td colSpan="3"></td><th>CGST ({Number(record.cgstRate) || 0}%)</th><td>{formatCurrency(cgst)}</td></tr>}
+            {record.gstEnabled && (record.sgstEnabled || record.cgstEnabled) && <tr className="sales-doc-spacer" aria-hidden="true"><td colSpan="5"></td></tr>}
+            {record.gstEnabled && record.sgstEnabled && <tr className="sales-doc-gst-row"><td>i</td><td colSpan="3">SGST@{Number(record.sgstRate) || 0}%</td><td>{formatCurrency(sgst)}</td></tr>}
+            {record.gstEnabled && record.cgstEnabled && <tr className="sales-doc-gst-row"><td>{record.sgstEnabled ? 'ii' : 'i'}</td><td colSpan="3">CGST@{Number(record.cgstRate) || 0}%</td><td>{formatCurrency(cgst)}</td></tr>}
             {discount > 0 && <tr className="sales-doc-tax-row"><td colSpan="3"></td><th>Discount</th><td>− {formatCurrency(discount)}</td></tr>}
-            <tr className="sales-doc-total-row"><td colSpan="3"></td><th>Total Price</th><td>{formatCurrency(total)}</td></tr>
+            <tr className="sales-doc-total-row"><td colSpan="3"></td><th>{kind === 'Invoice' ? 'Invoice Value' : 'Quotation Value'}</th><td>{formatCurrency(total)}</td></tr>
             {kind === 'Invoice' && <><tr className="sales-doc-tax-row"><td colSpan="3"></td><th>Amount Paid</th><td>{formatCurrency(paid)}</td></tr>
                 <tr className="sales-doc-total-row"><td colSpan="3"></td><th>Balance Due</th><td>{formatCurrency(balance)}</td></tr>
                 <tr className="sales-doc-tax-row"><td colSpan="3"></td><th>Payment Status</th><td>{paymentStatus}</td></tr></>}
