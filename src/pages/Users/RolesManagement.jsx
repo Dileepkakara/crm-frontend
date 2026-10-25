@@ -83,9 +83,9 @@ export default function RolesManagement({ roles, permissions, onChanged, notify 
     {editorOpen && <Modal title={editing ? 'Edit custom role' : 'Create custom role'} description="Sensitive user, role, and system-settings permissions are reserved for the Super Admin." onClose={() => setEditorOpen(false)}>
       <form className="record-form" onSubmit={save}>
         <div className="form-grid">
-          <label className="form-field"><span>Role name *</span><input maxLength={80} value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></label>
+          <label className="form-field"><span>Role name *</span><input maxLength={80} value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Enter role name" /></label>
           <label className="form-field"><span>Status</span><select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}><option>Active</option><option>Inactive</option></select></label>
-          <label className="form-field field-full"><span>Description</span><textarea maxLength={500} rows={2} value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} /></label>
+          <label className="form-field field-full"><span>Description</span><textarea maxLength={500} rows={2} value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} placeholder="Enter role description" /></label>
           <div className="field-full"><strong>Permissions *</strong>
             {Object.entries(groupedPermissions).map(([group, items]) => <fieldset className="permission-group" key={group}>
               <legend>{group}</legend><div className="permission-options">{items.map((permission) => <label key={permission.key}><input type="checkbox" checked={form.permissions.includes(permission.key)} onChange={() => togglePermission(permission.key)} />{permission.label}</label>)}</div>

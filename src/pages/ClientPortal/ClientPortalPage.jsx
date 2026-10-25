@@ -444,7 +444,7 @@ export default function ClientPortalPage() {
       }}>
       <div className="record-form">
         <p>Confirm that you want to {pendingAgreementDecision.action} this work order. Acceptance is an authenticated acknowledgement, not an electronic signature.</p>
-        {pendingAgreementDecision.action === 'reject' && <label className="form-field"><span>Reason for rejection</span><textarea rows="3" value={agreementRejectionReason} disabled={workingAgreementDecision} onChange={(event) => setAgreementRejectionReason(event.target.value)} /></label>}
+        {pendingAgreementDecision.action === 'reject' && <label className="form-field"><span>Reason for rejection</span><textarea rows="3" value={agreementRejectionReason} disabled={workingAgreementDecision} onChange={(event) => setAgreementRejectionReason(event.target.value)} placeholder="Enter reason for rejection" /></label>}
         <div className="modal-actions">
           <Button variant="secondary" type="button" disabled={workingAgreementDecision} onClick={() => {
             setPendingAgreementDecision(null)
@@ -466,7 +466,7 @@ export default function ClientPortalPage() {
       }}>
       <div className="record-form">
         <p>The invoice payment status will remain unchanged. Your decision cannot be changed from the client portal.</p>
-        {pendingInvoiceDecision.decision === 'Rejected' && <label className="form-field"><span>Reason for rejection</span><textarea rows="3" maxLength={1000} value={invoiceRejectionReason} disabled={workingInvoiceDecision} onChange={(event) => setInvoiceRejectionReason(event.target.value)} /></label>}
+        {pendingInvoiceDecision.decision === 'Rejected' && <label className="form-field"><span>Reason for rejection</span><textarea rows="3" maxLength={1000} value={invoiceRejectionReason} disabled={workingInvoiceDecision} onChange={(event) => setInvoiceRejectionReason(event.target.value)} placeholder="Enter reason for rejection" /></label>}
         <div className="modal-actions">
           <Button variant="secondary" type="button" disabled={workingInvoiceDecision} onClick={() => {
             setPendingInvoiceDecision(null)

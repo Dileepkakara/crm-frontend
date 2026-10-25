@@ -427,7 +427,7 @@ export default function InvoicesPage() {
     </div>
     <form className="sales-module-form sales-builder-form" onSubmit={saveInvoice}>
       <section className="sales-module-section"><h2>1. Invoice details</h2><div className="sales-module-fields">
-        <label className="form-field"><span>Invoice number</span><input value={form.id} onChange={(event) => setForm({ ...form, id: event.target.value })} /></label>
+        <label className="form-field"><span>Invoice number</span><input value={form.id} onChange={(event) => setForm({ ...form, id: event.target.value })} placeholder="Enter invoice number" /></label>
         <label className="form-field"><span>Invoice date</span><input type="date" value={form.issueDate} onChange={(event) => setForm({ ...form, issueDate: event.target.value })} /></label>
         <label className="form-field"><span>Due date</span><input type="date" value={form.dueDate} onChange={(event) => setForm({ ...form, dueDate: event.target.value })} /></label>
       </div></section>
@@ -441,20 +441,20 @@ export default function InvoicesPage() {
       <section className="sales-module-section"><h2>2. Recipient details</h2><div className="sales-module-fields">
         <ClientSearchSelect clients={clients} selectedId={form.clientId} query={clientQuery}
           onQueryChange={handleClientSearch} onSelect={chooseClient} />
-        <label className="form-field"><span>Bill to</span><input value={form.billingName} onChange={(event) => setForm({ ...form, billingName: event.target.value })} /></label>
-        <label className="form-field"><span>Address</span><input value={form.billingAddress} onChange={(event) => setForm({ ...form, billingAddress: event.target.value })} /></label>
-        <label className="form-field"><span>Customer GSTIN</span><input value={form.customerGstin} onChange={(event) => setForm({ ...form, customerGstin: event.target.value })} /></label>
-        <label className="form-field"><span>Contact email</span><input type="email" value={form.contactEmail} onChange={(event) => setForm({ ...form, contactEmail: event.target.value })} /></label>
-        <label className="form-field"><span>Contact phone</span><input value={form.contactPhone} onChange={(event) => setForm({ ...form, contactPhone: event.target.value })} /></label>
-        <label className="form-field"><span>Project / service</span><input value={form.project} onChange={(event) => setForm({ ...form, project: event.target.value })} /></label>
+        <label className="form-field"><span>Bill to</span><input value={form.billingName} onChange={(event) => setForm({ ...form, billingName: event.target.value })} placeholder="Enter name" /></label>
+        <label className="form-field"><span>Address</span><input value={form.billingAddress} onChange={(event) => setForm({ ...form, billingAddress: event.target.value })} placeholder="Enter address" /></label>
+        <label className="form-field"><span>Customer GSTIN</span><input value={form.customerGstin} onChange={(event) => setForm({ ...form, customerGstin: event.target.value })} placeholder="Enter customer GSTIN" /></label>
+        <label className="form-field"><span>Contact email</span><input type="email" value={form.contactEmail} onChange={(event) => setForm({ ...form, contactEmail: event.target.value })} placeholder="Enter email address" /></label>
+        <label className="form-field"><span>Contact phone</span><input value={form.contactPhone} onChange={(event) => setForm({ ...form, contactPhone: event.target.value })} placeholder="Enter phone number" /></label>
+        <label className="form-field"><span>Project / service</span><input value={form.project} onChange={(event) => setForm({ ...form, project: event.target.value })} placeholder="Enter project or service" /></label>
       </div></section>
       </fieldset>
       <section className="sales-module-section"><div className="sales-module-toolbar"><h2>3. Items</h2><Button className="sales-builder-add" type="button" onClick={() => setForm({ ...form, preserveLegacyTotal: false, items: [...form.items, blankItem()] })}>Add item</Button></div>
         {isUntouchedLegacy(form) && <p className="form-note">This existing invoice has a recorded total but no item breakdown. It will be preserved unless you add itemized details.</p>}
         <div className="sales-module-items">{form.items.map((item, index) => <div className="sales-module-item" key={index}>
           <label className="form-field"><span>Description</span><input placeholder="Enter item description" value={item.description} onChange={(event) => setForm({ ...form, preserveLegacyTotal: false, items: form.items.map((row, i) => i === index ? { ...row, description: event.target.value } : row) })} /></label>
-          <label className="form-field"><span>Quantity</span><input type="number" min="0.01" step="any" value={item.quantity} onChange={(event) => setForm({ ...form, preserveLegacyTotal: false, items: form.items.map((row, i) => i === index ? { ...row, quantity: event.target.value } : row) })} /></label>
-          <label className="form-field"><span>Unit price</span><input type="number" min="0" step="0.01" value={item.rate} onChange={(event) => setForm({ ...form, preserveLegacyTotal: false, items: form.items.map((row, i) => i === index ? { ...row, rate: event.target.value } : row) })} /></label>
+          <label className="form-field"><span>Quantity</span><input type="number" min="0.01" step="any" value={item.quantity} onChange={(event) => setForm({ ...form, preserveLegacyTotal: false, items: form.items.map((row, i) => i === index ? { ...row, quantity: event.target.value } : row) })} placeholder="Enter quantity" /></label>
+          <label className="form-field"><span>Unit price</span><input type="number" min="0" step="0.01" value={item.rate} onChange={(event) => setForm({ ...form, preserveLegacyTotal: false, items: form.items.map((row, i) => i === index ? { ...row, rate: event.target.value } : row) })} placeholder="Enter unit price" /></label>
           <Button type="button" variant="secondary" disabled={form.items.length === 1} onClick={() => setForm({ ...form, preserveLegacyTotal: false, items: form.items.filter((_, i) => i !== index) })}>Remove</Button>
         </div>)}</div>
       </section>
@@ -463,10 +463,10 @@ export default function InvoicesPage() {
         {form.gstEnabled && <>
           <label><input type="checkbox" checked={form.sgstEnabled} onChange={(event) => setForm({ ...form, sgstEnabled: event.target.checked })} /> SGST</label>
           <label><input type="checkbox" checked={form.cgstEnabled} onChange={(event) => setForm({ ...form, cgstEnabled: event.target.checked })} /> CGST</label>
-          <label className="form-field"><span>SGST rate (%)</span><input type="number" min="0" max="100" step="0.01" value={form.sgstRate} disabled={!form.sgstEnabled} onChange={(event) => setForm({ ...form, sgstRate: event.target.value })} /></label>
-          <label className="form-field"><span>CGST rate (%)</span><input type="number" min="0" max="100" step="0.01" value={form.cgstRate} disabled={!form.cgstEnabled} onChange={(event) => setForm({ ...form, cgstRate: event.target.value })} /></label>
+          <label className="form-field"><span>SGST rate (%)</span><input type="number" min="0" max="100" step="0.01" value={form.sgstRate} disabled={!form.sgstEnabled} onChange={(event) => setForm({ ...form, sgstRate: event.target.value })} placeholder="Enter SGST rate" /></label>
+          <label className="form-field"><span>CGST rate (%)</span><input type="number" min="0" max="100" step="0.01" value={form.cgstRate} disabled={!form.cgstEnabled} onChange={(event) => setForm({ ...form, cgstRate: event.target.value })} placeholder="Enter CGST rate" /></label>
         </>}
-        <label className="form-field"><span>Discount (₹)</span><input type="number" min="0" step="0.01" value={form.discount} onChange={(event) => setForm({ ...form, discount: event.target.value })} /></label>
+        <label className="form-field"><span>Discount (₹)</span><input type="number" min="0" step="0.01" value={form.discount} onChange={(event) => setForm({ ...form, discount: event.target.value })} placeholder="Enter discount amount" /></label>
       </div><div className="sales-doc-summary"><div className="sales-doc-words"><strong>Amount in words</strong><span>{amountInWords(totals.total)}</span></div><dl>
         <div><dt>Subtotal</dt><dd>{formatCurrency(totals.subtotal || totals.total)}</dd></div>{totals.discount > 0 && <div><dt>Discount</dt><dd>− {formatCurrency(totals.discount)}</dd></div>}
         <div><dt>Taxable Value</dt><dd>{formatCurrency(totals.taxableValue || totals.total)}</dd></div>
@@ -474,12 +474,12 @@ export default function InvoicesPage() {
         {form.gstEnabled && form.cgstEnabled && <div><dt>CGST ({Number(form.cgstRate) || 0}%)</dt><dd>{formatCurrency(totals.cgstAmount)}</dd></div>}
         <div className="sales-doc-total"><dt>Total Price</dt><dd>{formatCurrency(totals.total)}</dd></div>
       </dl>      </div></section>
-      <section className="sales-module-section"><h2>5. Terms and conditions</h2><label className="form-field"><span>Terms</span><textarea rows="3" value={form.terms} onChange={(event) => setForm({ ...form, terms: event.target.value })} /></label></section>
+      <section className="sales-module-section"><h2>5. Terms and conditions</h2><label className="form-field"><span>Terms</span><textarea rows="3" value={form.terms} onChange={(event) => setForm({ ...form, terms: event.target.value })} placeholder="Enter payment terms and additional conditions" /></label></section>
       <section className="sales-module-section"><h2>6. Company and bank details</h2><div className="sales-module-fields">
         <label className="form-field"><span>Company name</span><input value={preferences.companyName || 'Design Blocks'} readOnly /></label>
         <label className="form-field"><span>Company logo</span><div className="sales-module-logo"><img src="/design-blocks-logo.png" alt="Design Blocks logo" /></div></label>
-        <label className="form-field"><span>Company GSTIN</span><input value={form.companyGstin} onChange={(event) => setForm({ ...form, companyGstin: event.target.value })} /></label>
-        <label className="form-field field-wide"><span>Company address</span><textarea rows="2" value={form.companyAddress} onChange={(event) => setForm({ ...form, companyAddress: event.target.value })} /></label>
+        <label className="form-field"><span>Company GSTIN</span><input value={form.companyGstin} onChange={(event) => setForm({ ...form, companyGstin: event.target.value })} placeholder="Enter company GSTIN" /></label>
+        <label className="form-field field-wide"><span>Company address</span><textarea rows="2" value={form.companyAddress} onChange={(event) => setForm({ ...form, companyAddress: event.target.value })} placeholder="Enter company address" /></label>
         <label className="form-field field-wide"><span>Bank details (optional)</span><textarea rows="3" value={form.bankDetails} onChange={(event) => setForm({ ...form, bankDetails: event.target.value })} placeholder="Enter only verified business bank details." /></label>
       </div></section>
       {error && <p className="sales-module-error" role="alert">{error}</p>}
@@ -501,7 +501,7 @@ export default function InvoicesPage() {
         <select aria-label="Filter invoices by status" value={status} onChange={(event) => setStatus(event.target.value)}>{['All statuses', 'Draft', 'Issued', 'Overdue', 'Partially Paid', 'Paid', 'Cancelled'].map((value) => <option key={value}>{value}</option>)}</select>
       </div>
       {loadError && <div className="resource-load-error" role="alert"><span>{loadError}</span><Button type="button" variant="secondary" onClick={() => load()}>Retry</Button></div>}
-      {loading ? <div className="loading-inline">Loading invoices…</div> : visibleRecords.length ? <div className="table-scroll"><table className="data-table"><thead><tr><th>Invoice no.</th><th>Client</th><th>Project / service</th><th>Issue date</th><th>Due date</th><th>Total</th><th>Amount paid</th><th>Balance due</th><th>Status</th><th>Actions</th></tr></thead>
+      {loading ? <div className="loading-inline" role="status"><span className="spinner" aria-hidden="true" />Loading invoices…</div> : visibleRecords.length ? <div className="table-scroll"><table className="data-table"><thead><tr><th>Invoice no.</th><th>Client</th><th>Project / service</th><th>Issue date</th><th>Due date</th><th>Total</th><th>Amount paid</th><th>Balance due</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody>{visibleRecords.map((record) => {
           const paid = getInvoicePaid(record.id, payments)
           const total = Number(record.total ?? record.amount) || 0

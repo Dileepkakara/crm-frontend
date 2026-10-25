@@ -511,7 +511,7 @@ export default function ResourceRecordsPage({ resource }) {
       <form className="record-form" onSubmit={saveRecord} noValidate>
         <div className="form-grid">{formFields.map(([key, label, type, required, options]) => <label key={key} className={`form-field ${type === 'textarea' ? 'field-full' : ''}`}>
           <span>{label}{required && <b> *</b>}</span>
-          {type === 'textarea' ? <textarea rows="3" value={form[key] || ''} onChange={(event) => setForm({ ...form, [key]: event.target.value })} />
+          {type === 'textarea' ? <textarea rows="3" value={form[key] || ''} onChange={(event) => setForm({ ...form, [key]: event.target.value })} placeholder={`Enter ${label.toLowerCase()}`} />
             : type === 'select' ? <select value={form[key] || ''} onChange={(event) => {
               const value = event.target.value
               const invoice = key === 'invoiceId' ? invoiceOptions.find((item) => item.id === value) : null
@@ -525,7 +525,7 @@ export default function ResourceRecordsPage({ resource }) {
                   ? assigneeOptions.map((person) => [person.name, person.name])
                   : (options || []).map((value) => [value, value]))
               .map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
-              : <input type={type} min={type === 'number' ? '0' : undefined} step={type === 'number' ? (key === 'quantity' ? 'any' : ['rate', 'discount', 'tax'].includes(key) ? '0.01' : '1') : undefined} readOnly={resource === 'invoices' && key === 'total' && Boolean(invoiceLineComplete)} value={resource === 'invoices' && key === 'total' && invoiceLineComplete ? calculatedInvoiceTotal : form[key] ?? ''} onChange={(event) => setForm({ ...form, [key]: event.target.value })} />}
+              : <input type={type} min={type === 'number' ? '0' : undefined} step={type === 'number' ? (key === 'quantity' ? 'any' : ['rate', 'discount', 'tax'].includes(key) ? '0.01' : '1') : undefined} readOnly={resource === 'invoices' && key === 'total' && Boolean(invoiceLineComplete)} value={resource === 'invoices' && key === 'total' && invoiceLineComplete ? calculatedInvoiceTotal : form[key] ?? ''} onChange={(event) => setForm({ ...form, [key]: event.target.value })} placeholder={`Enter ${label.toLowerCase()}`} />}
           {errors[key] && <small className="field-error">{errors[key]}</small>}
         </label>)}</div>
         {resource === 'invoices' && <section className="invoice-line-editor">
@@ -533,9 +533,9 @@ export default function ResourceRecordsPage({ resource }) {
             <Button type="button" variant="secondary" onClick={() => setInvoiceItems((items) => [...items, { description: '', quantity: '', rate: '' }])}><Plus size={15} /> Add line</Button>
           </div>
           {invoiceItems.map((item, index) => <div className="invoice-line-form-row" key={index}>
-            <label className="form-field"><span>Description</span><input value={item.description} onChange={(event) => setInvoiceItems((items) => items.map((current, itemIndex) => itemIndex === index ? { ...current, description: event.target.value } : current))} /></label>
-            <label className="form-field"><span>Quantity</span><input aria-label={`Quantity for line ${index + 1}`} type="number" min="0" step="any" value={item.quantity} onChange={(event) => setInvoiceItems((items) => items.map((current, itemIndex) => itemIndex === index ? { ...current, quantity: event.target.value } : current))} /></label>
-            <label className="form-field"><span>Rate (₹)</span><input aria-label={`Rate for line ${index + 1}`} type="number" min="0" step="0.01" value={item.rate} onChange={(event) => setInvoiceItems((items) => items.map((current, itemIndex) => itemIndex === index ? { ...current, rate: event.target.value } : current))} /></label>
+            <label className="form-field"><span>Description</span><input value={item.description} onChange={(event) => setInvoiceItems((items) => items.map((current, itemIndex) => itemIndex === index ? { ...current, description: event.target.value } : current))} placeholder="Enter item description" /></label>
+            <label className="form-field"><span>Quantity</span><input aria-label={`Quantity for line ${index + 1}`} type="number" min="0" step="any" value={item.quantity} onChange={(event) => setInvoiceItems((items) => items.map((current, itemIndex) => itemIndex === index ? { ...current, quantity: event.target.value } : current))} placeholder="Enter quantity" /></label>
+            <label className="form-field"><span>Rate (₹)</span><input aria-label={`Rate for line ${index + 1}`} type="number" min="0" step="0.01" value={item.rate} onChange={(event) => setInvoiceItems((items) => items.map((current, itemIndex) => itemIndex === index ? { ...current, rate: event.target.value } : current))} placeholder="Enter rate" /></label>
             <div className="invoice-line-amount"><span>Amount</span><strong>{formatCurrency(Number(item.quantity || 0) * Number(item.rate || 0))}</strong></div>
             <button type="button" className="icon-button invoice-line-remove" aria-label={`Remove line item ${index + 1}`} onClick={() => setInvoiceItems((items) => items.filter((_, itemIndex) => itemIndex !== index))}><Trash2 size={16} /></button>
           </div>)}

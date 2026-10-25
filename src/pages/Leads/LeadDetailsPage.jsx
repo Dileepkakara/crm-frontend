@@ -111,7 +111,7 @@ export default function LeadDetailsPage() {
       {tab === 'Quotations' && <div className="detail-tab-content">{quotes.length ? quotes.map((quote) => <div className="followup-item" key={quote.id}><FileText size={18} /><div><strong>{quote.title}</strong><small>{quote.id} · Version {quote.version}</small></div><strong>{formatCurrency(quote.amount)}</strong><Badge>{quote.status}</Badge></div>) : <p className="muted">No quotations are linked to this lead yet.</p>}</div>}
       {tab === 'Notes' && <div className="detail-tab-content">{noteEditing
         ? <form className="notes-edit-form" onSubmit={async (event) => { event.preventDefault(); await update({ notes: noteDraft }, 'Lead notes updated.'); setNoteEditing(false) }}>
-          <textarea aria-label="Lead notes" rows="4" value={noteDraft} onChange={(event) => setNoteDraft(event.target.value)} />
+          <textarea aria-label="Lead notes" rows="4" value={noteDraft} onChange={(event) => setNoteDraft(event.target.value)} placeholder="Enter notes about this lead" />
           <Button type="submit"><Check size={14} /> Save notes</Button><Button variant="secondary" type="button" onClick={() => setNoteEditing(false)}>Cancel</Button>
         </form>
         : <><p className="lead-notes">{lead.notes || 'No notes have been added.'}</p><button className="text-link" onClick={() => { setNoteDraft(lead.notes || ''); setNoteEditing(true) }}><Pencil size={14} /> Edit notes</button></>}</div>}
@@ -129,7 +129,7 @@ export default function LeadDetailsPage() {
     {scheduleOpen && <Modal title="Schedule follow-up" description={`Plan the next touchpoint with ${lead.name}.`} onClose={() => setScheduleOpen(false)}>
       <form className="record-form" onSubmit={scheduleFollowup}><div className="form-grid"><label className="form-field"><span>Follow-up type</span><select value={followupForm.type} onChange={(event) => setFollowupForm({ ...followupForm, type: event.target.value })}>{['Intro call', 'Discovery call', 'Proposal review', 'Check-in', 'Email'].map((type) => <option key={type}>{type}</option>)}</select></label>
         <label className="form-field"><span>Due date *</span><input type="date" value={followupForm.dueDate} onChange={(event) => setFollowupForm({ ...followupForm, dueDate: event.target.value })} /></label>
-        <label className="form-field field-full"><span>Notes</span><textarea rows="3" value={followupForm.notes} onChange={(event) => setFollowupForm({ ...followupForm, notes: event.target.value })} /></label></div>
+        <label className="form-field field-full"><span>Notes</span><textarea rows="3" value={followupForm.notes} onChange={(event) => setFollowupForm({ ...followupForm, notes: event.target.value })} placeholder="Enter follow-up notes" /></label></div>
         <div className="modal-actions"><Button type="button" variant="secondary" onClick={() => setScheduleOpen(false)}>Cancel</Button><Button type="submit">Save follow-up</Button></div></form>
     </Modal>}
   </div>

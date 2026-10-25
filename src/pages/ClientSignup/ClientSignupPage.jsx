@@ -42,11 +42,11 @@ export default function ClientSignupPage() {
             <Link to="/client-login">Return to client sign in</Link>
           </div>
           : <form className="auth-form" onSubmit={submit}>
-            <label className="form-field"><span>Your name *</span><input autoComplete="name" required maxLength={120} value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></label>
-            <label className="form-field"><span>Company *</span><input autoComplete="organization" required maxLength={160} value={form.company} onChange={(event) => setForm({ ...form, company: event.target.value })} /></label>
-            <label className="form-field"><span>Email address *</span><input type="email" autoComplete="email" required maxLength={254} value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></label>
-            <label className="form-field"><span>Phone number *</span><input type="tel" autoComplete="tel" required maxLength={40} value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} /></label>
-            <label className="form-field"><span>Address (optional)</span><textarea autoComplete="street-address" maxLength={1000} rows={3} value={form.address} onChange={(event) => setForm({ ...form, address: event.target.value })} /></label>
+            <label className="form-field"><span>Your name *</span><input autoComplete="name" required maxLength={120} value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Enter your name" /></label>
+            <label className="form-field"><span>Company *</span><input autoComplete="organization" required maxLength={160} value={form.company} onChange={(event) => setForm({ ...form, company: event.target.value })} placeholder="Enter company name" /></label>
+            <label className="form-field"><span>Email address *</span><input type="email" autoComplete="email" required maxLength={254} value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} placeholder="Enter email address" /></label>
+            <label className="form-field"><span>Phone number *</span><input type="tel" autoComplete="tel" required maxLength={40} value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} placeholder="Enter phone number" /></label>
+            <label className="form-field"><span>Address (optional)</span><textarea autoComplete="street-address" maxLength={1000} rows={3} value={form.address} onChange={(event) => setForm({ ...form, address: event.target.value })} placeholder="Enter address" /></label>
             {error && <p className="form-error" role="alert">{error}</p>}
             <Button type="submit" disabled={busy}>{busy ? 'Submitting…' : 'Submit access request'}</Button>
           </form>}

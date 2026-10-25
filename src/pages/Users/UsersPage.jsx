@@ -200,12 +200,12 @@ export default function UsersPage() {
     {isBackendMode && hasPermission('roles.manage') && <RolesManagement roles={roles} permissions={permissionCatalog} onChanged={load} notify={notify} />}
     {editorOpen && <Modal title={editing ? 'Edit user' : isBackendMode ? 'Create user' : 'Create demo user'} description={isBackendMode ? 'Set the account role and initial sign-in password.' : 'These changes affect only mock accounts in this browser.'} onClose={() => setEditorOpen(false)}>
       <form className="record-form" onSubmit={save}><div className="form-grid">
-        <label className="form-field"><span>Name *</span><input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></label>
-        <label className="form-field"><span>Email *</span><input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></label>
-        <label className="form-field"><span>Phone number</span><input type="tel" value={form.phone || ''} onChange={(event) => setForm({ ...form, phone: event.target.value })} /></label>
-        <label className="form-field"><span>Department</span><input value={form.department || ''} onChange={(event) => setForm({ ...form, department: event.target.value })} /></label>
-        <label className="form-field"><span>Team ID</span><input value={form.teamId || ''} onChange={(event) => setForm({ ...form, teamId: event.target.value })} /></label>
-        {isBackendMode && !editing && <label className="form-field"><span>Temporary password *</span><input type="password" autoComplete="new-password" minLength={12} value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} /><small className="muted">The new user will be required to change it after signing in.</small></label>}
+        <label className="form-field"><span>Name *</span><input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Enter name" /></label>
+        <label className="form-field"><span>Email *</span><input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} placeholder="Enter email address" /></label>
+        <label className="form-field"><span>Phone number</span><input type="tel" value={form.phone || ''} onChange={(event) => setForm({ ...form, phone: event.target.value })} placeholder="Enter phone number" /></label>
+        <label className="form-field"><span>Department</span><input value={form.department || ''} onChange={(event) => setForm({ ...form, department: event.target.value })} placeholder="Enter department" /></label>
+        <label className="form-field"><span>Team ID</span><input value={form.teamId || ''} onChange={(event) => setForm({ ...form, teamId: event.target.value })} placeholder="Enter team ID" /></label>
+        {isBackendMode && !editing && <label className="form-field"><span>Temporary password *</span><input type="password" autoComplete="new-password" minLength={12} value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} placeholder="Enter temporary password" /><small className="muted">The new user will be required to change it after signing in.</small></label>}
         <label className="form-field"><span>Role *</span><select value={form.role} disabled={editing?.id === currentUser.id} onChange={(event) => setForm({ ...form, role: event.target.value })}>{roles.filter((option) => option.status === 'Active').map((option) => <option key={option.key} value={option.key}>{option.name}</option>)}</select></label>
         {isBackendMode && <label className="form-field"><span>Account status</span><select value={form.status || 'Active'} onChange={(event) => setForm({ ...form, status: event.target.value })}><option>Active</option><option>Inactive</option></select></label>}
         {form.role === ROLES.CLIENT && <>
@@ -214,7 +214,7 @@ export default function UsersPage() {
             {clients.map((client) => <option value={client.id} key={client.id}>{client.name} · {client.company}</option>)}
             <option value={NEW_CLIENT_OPTION}>Other — enter a new client manually</option>
           </select><small className="muted">Link to an existing client, or create a client record and portal account together.</small></label>
-          {form.clientId === NEW_CLIENT_OPTION && <label className="form-field field-full"><span>Client company *</span><input value={form.clientCompany || ''} onChange={(event) => setForm({ ...form, clientCompany: event.target.value })} /></label>}
+          {form.clientId === NEW_CLIENT_OPTION && <label className="form-field field-full"><span>Client company *</span><input value={form.clientCompany || ''} onChange={(event) => setForm({ ...form, clientCompany: event.target.value })} placeholder="Enter company name" /></label>}
         </>}
         {!isBackendMode && !editing && <p className="form-note field-full">New mock accounts use the shared demo password displayed on the sign-in page. Passwords are not saved in this user list.</p>}
         {form.role === ROLES.SALES_EXECUTIVE && <label className="form-field field-full"><span>Assigned lead IDs (comma separated)</span><input value={(form.assignedLeadIds || []).join(', ')} onChange={(event) => setForm({ ...form, assignedLeadIds: event.target.value.split(',').map((item) => item.trim()).filter(Boolean) })} placeholder="e.g. LD-1048, LD-1047" /></label>}
@@ -226,7 +226,7 @@ export default function UsersPage() {
     </Modal>}
     {passwordTarget && <Modal title={`Reset password for ${passwordTarget.name}`} description="The new password is saved as a hash. Existing sessions for this user will be revoked." onClose={() => setPasswordTarget(null)}>
       <form className="record-form" onSubmit={resetPassword}>
-        <label className="form-field"><span>New password *</span><input type="password" autoComplete="new-password" minLength={12} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} /></label>
+        <label className="form-field"><span>New password *</span><input type="password" autoComplete="new-password" minLength={12} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} placeholder="Enter new password" /></label>
         {passwordError && <p className="form-error" role="alert">{passwordError}</p>}
         <div className="modal-actions"><Button type="button" variant="secondary" onClick={() => setPasswordTarget(null)}>Cancel</Button><Button type="submit" disabled={savingPassword}>{savingPassword ? 'Saving…' : 'Reset password'}</Button></div>
       </form>

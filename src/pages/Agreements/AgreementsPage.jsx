@@ -225,35 +225,35 @@ export default function AgreementsPage() {
     <PageHeader title={editing ? `Edit work order ${editing.id}` : 'Create work order'} description="Create a draft linked to a client and, optionally, an approved quotation." />
     <form className="sales-module-form" onSubmit={saveDraft}>
       <section className="sales-module-section"><h2>1. Work order details</h2><div className="sales-module-fields">
-        <label className="form-field"><span>Work order number</span><input value={form.id} onChange={(event) => setForm({ ...form, id: event.target.value })} /></label>
+        <label className="form-field"><span>Work order number</span><input value={form.id} onChange={(event) => setForm({ ...form, id: event.target.value })} placeholder="Enter work order number" /></label>
         <label className="form-field"><span>Issue date</span><input type="date" value={form.createdAt} onChange={(event) => setForm({ ...form, createdAt: event.target.value })} /></label>
         <label className="form-field"><span>Status</span><input value={form.status} readOnly /></label>
         <label className="form-field"><span>Related quotation</span><select value={form.quotationId} onChange={(event) => selectQuotation(event.target.value)}><option value="">No related quotation</option>{quotations.filter((quote) => quote.status === 'Accepted' || quote.id === editing?.quotationId).map((quote) => <option key={quote.id} value={quote.id}>{quote.id} · {quote.client}</option>)}</select></label>
         <label className="form-field"><span>Client</span><select value={form.clientId} onChange={(event) => selectClient(event.target.value)}><option value="">Select client</option>{clients.map((client) => <option key={client.id} value={client.id}>{client.company || client.name}</option>)}</select></label>
-        <label className="form-field"><span>Project / service</span><input value={form.project} onChange={(event) => setForm({ ...form, project: event.target.value })} /></label>
+        <label className="form-field"><span>Project / service</span><input value={form.project} onChange={(event) => setForm({ ...form, project: event.target.value })} placeholder="Enter project or service" /></label>
       </div></section>
       <section className="sales-module-section"><h2>2. Client billing details</h2><div className="sales-module-fields">
-        <label className="form-field"><span>Bill to</span><input value={form.billingName} onChange={(event) => setForm({ ...form, billingName: event.target.value })} /></label>
-        <label className="form-field"><span>GSTIN</span><input value={form.customerGstin} onChange={(event) => setForm({ ...form, customerGstin: event.target.value })} /></label>
-        <label className="form-field"><span>Contact email</span><input type="email" value={form.contactEmail} onChange={(event) => setForm({ ...form, contactEmail: event.target.value })} /></label>
-        <label className="form-field field-wide"><span>Billing address</span><textarea rows="2" value={form.billingAddress} onChange={(event) => setForm({ ...form, billingAddress: event.target.value })} /></label>
-        <label className="form-field"><span>Contact phone</span><input value={form.contactPhone} onChange={(event) => setForm({ ...form, contactPhone: event.target.value })} /></label>
+        <label className="form-field"><span>Bill to</span><input value={form.billingName} onChange={(event) => setForm({ ...form, billingName: event.target.value })} placeholder="Enter name" /></label>
+        <label className="form-field"><span>GSTIN</span><input value={form.customerGstin} onChange={(event) => setForm({ ...form, customerGstin: event.target.value })} placeholder="Enter GSTIN" /></label>
+        <label className="form-field"><span>Contact email</span><input type="email" value={form.contactEmail} onChange={(event) => setForm({ ...form, contactEmail: event.target.value })} placeholder="Enter email address" /></label>
+        <label className="form-field field-wide"><span>Billing address</span><textarea rows="2" value={form.billingAddress} onChange={(event) => setForm({ ...form, billingAddress: event.target.value })} placeholder="Enter billing address" /></label>
+        <label className="form-field"><span>Contact phone</span><input value={form.contactPhone} onChange={(event) => setForm({ ...form, contactPhone: event.target.value })} placeholder="Enter phone number" /></label>
       </div></section>
       <section className="sales-module-section"><h2>3. Scope and deliverables</h2><div className="sales-module-fields">
-        <label className="form-field field-wide"><span>Approved scope of work</span><textarea rows="4" value={form.scope} onChange={(event) => setForm({ ...form, scope: event.target.value })} /></label>
-        <label className="form-field field-wide"><span>Deliverables</span><textarea rows="3" value={form.deliverables} onChange={(event) => setForm({ ...form, deliverables: event.target.value })} /></label>
+        <label className="form-field field-wide"><span>Approved scope of work</span><textarea rows="4" value={form.scope} onChange={(event) => setForm({ ...form, scope: event.target.value })} placeholder="Describe the approved scope of work" /></label>
+        <label className="form-field field-wide"><span>Deliverables</span><textarea rows="3" value={form.deliverables} onChange={(event) => setForm({ ...form, deliverables: event.target.value })} placeholder="List the project deliverables" /></label>
       </div></section>
       <section className="sales-module-section"><h2>4. Project timeline and terms</h2><div className="sales-module-fields">
         <label className="form-field"><span>Start date</span><input type="date" value={form.startDate} onChange={(event) => setForm({ ...form, startDate: event.target.value })} /></label>
         <label className="form-field"><span>Target completion</span><input type="date" value={form.deadline} onChange={(event) => setForm({ ...form, deadline: event.target.value })} /></label>
-        <label className="form-field field-wide"><span>Payment milestones</span><textarea rows="2" value={form.paymentMilestones} onChange={(event) => setForm({ ...form, paymentMilestones: event.target.value })} /></label>
-        <label className="form-field field-wide"><span>Terms and conditions</span><textarea rows="3" value={form.terms} onChange={(event) => setForm({ ...form, terms: event.target.value })} /></label>
+        <label className="form-field field-wide"><span>Payment milestones</span><textarea rows="2" value={form.paymentMilestones} onChange={(event) => setForm({ ...form, paymentMilestones: event.target.value })} placeholder="Enter payment milestones" /></label>
+        <label className="form-field field-wide"><span>Terms and conditions</span><textarea rows="3" value={form.terms} onChange={(event) => setForm({ ...form, terms: event.target.value })} placeholder="Enter terms and conditions" /></label>
       </div></section>
       <section className="sales-module-section"><h2>Company and bank details</h2><div className="sales-module-fields">
         <label className="form-field"><span>Company name</span><input value={preferences.companyName || 'Design Blocks'} readOnly /></label>
         <label className="form-field"><span>Company logo</span><div className="sales-module-logo"><img src="/design-blocks-logo.png" alt="Design Blocks logo" /></div></label>
-        <label className="form-field"><span>Company GSTIN</span><input value={form.companyGstin} onChange={(event) => setForm({ ...form, companyGstin: event.target.value })} /></label>
-        <label className="form-field field-wide"><span>Company address</span><textarea rows="2" value={form.companyAddress} onChange={(event) => setForm({ ...form, companyAddress: event.target.value })} /></label>
+        <label className="form-field"><span>Company GSTIN</span><input value={form.companyGstin} onChange={(event) => setForm({ ...form, companyGstin: event.target.value })} placeholder="Enter company GSTIN" /></label>
+        <label className="form-field field-wide"><span>Company address</span><textarea rows="2" value={form.companyAddress} onChange={(event) => setForm({ ...form, companyAddress: event.target.value })} placeholder="Enter company address" /></label>
         <label className="form-field field-wide"><span>Bank details (optional)</span><textarea rows="3" value={form.bankDetails} onChange={(event) => setForm({ ...form, bankDetails: event.target.value })} placeholder="Enter only verified business bank details." /></label>
       </div></section>
       <p className="form-note">Saving or previewing a work order does not constitute client acceptance or an electronic signature.</p>
@@ -277,7 +277,7 @@ export default function AgreementsPage() {
         </label>
         <select aria-label="Filter work orders by status" value={status} onChange={(event) => setStatus(event.target.value)}>{['All statuses', 'Draft', 'Pending approval', 'Accepted', 'Rejected'].map((value) => <option key={value}>{value}</option>)}</select>
       </div>
-      {loading ? <div className="loading-inline">Loading work orders…</div> : visibleRecords.length ? <div className="table-scroll"><table className="data-table"><thead><tr><th>Work order no.</th><th>Client</th><th>Quotation</th><th>Project / service</th><th>Issue date</th><th>Start date</th><th>Status</th><th>Actions</th></tr></thead>
+      {loading ? <div className="loading-inline" role="status"><span className="spinner" aria-hidden="true" />Loading work orders…</div> : visibleRecords.length ? <div className="table-scroll"><table className="data-table"><thead><tr><th>Work order no.</th><th>Client</th><th>Quotation</th><th>Project / service</th><th>Issue date</th><th>Start date</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody>{visibleRecords.map((record) => {
           const quotationSnapshot = record.quotationSnapshot || record.acceptedSnapshot?.quotationSnapshot
           const sourceQuotation = quotations.find((quotation) => quotation.id === record.quotationId) || quotationSnapshot

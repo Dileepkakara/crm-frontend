@@ -124,7 +124,7 @@ export default function ClientSignupRequestsPage() {
             </select>
             <small className="muted">Existing records must match the request identity. Inactive client records must be reactivated first.</small>
           </label>
-          : <label className="form-field"><span>Reason (optional)</span><textarea rows={3} maxLength={1000} value={reason} onChange={(event) => setReason(event.target.value)} /></label>}
+          : <label className="form-field"><span>Reason (optional)</span><textarea rows={3} maxLength={1000} value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Enter reason for rejection" /></label>}
         {error && <p className="form-error" role="alert">{error}</p>}
         <div className="modal-actions"><Button type="button" variant="secondary" disabled={working} onClick={() => setDecision(null)}>Cancel</Button>
           <Button type="submit" disabled={working}>{working ? 'Saving…' : decision.action === 'approve' ? 'Approve and create access' : 'Reject request'}</Button></div>

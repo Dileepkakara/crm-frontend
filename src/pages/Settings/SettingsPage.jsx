@@ -59,8 +59,8 @@ export default function SettingsPage() {
     <div className="settings-grid">
       <section className="panel settings-section">
         <div className="panel-heading"><span className="settings-section-icon"><Building2 size={20} /></span><div><h2>Company profile</h2><p>Workspace identity shown in this prototype</p></div></div>
-        <label className="form-field"><span>Company name</span><input value={preferences.companyName} onChange={(event) => setPreferences({ ...preferences, companyName: event.target.value })} /></label>
-        <label className="form-field"><span>Workspace subtitle</span><input value={preferences.subtitle} onChange={(event) => setPreferences({ ...preferences, subtitle: event.target.value })} /></label>
+        <label className="form-field"><span>Company name</span><input value={preferences.companyName} onChange={(event) => setPreferences({ ...preferences, companyName: event.target.value })} placeholder="Enter company name" /></label>
+        <label className="form-field"><span>Workspace subtitle</span><input value={preferences.subtitle} onChange={(event) => setPreferences({ ...preferences, subtitle: event.target.value })} placeholder="Enter workspace subtitle" /></label>
         <label className="form-field"><span>Currency preference</span><select value={preferences.currency} onChange={(event) => setPreferences({ ...preferences, currency: event.target.value })}>
           <option>INR · Indian Rupee</option><option>USD · US Dollar</option>
         </select></label>
