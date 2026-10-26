@@ -1,30 +1,34 @@
 .sales-document-page { display: grid; gap: 14px; }
-.sales-doc-actions { display: flex; justify-content: flex-end; gap: 8px; }
-.sales-doc-button { min-height: 38px; padding: 7px 12px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px; font-weight: 650; }
+.sales-doc-actions { display: flex; width: min(100%, 850px); flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; margin: 0 auto 12px; }
+.sales-doc-button { display: inline-flex; min-height: 44px; flex: 0 0 auto; align-items: center; justify-content: center; gap: 8px; padding: 9px 16px; border: 1px solid #cbd5e1; border-radius: 7px; box-shadow: 0 1px 2px rgb(15 23 42 / 8%); font-size: 15px; font-weight: 650; line-height: 1.2; white-space: nowrap; cursor: pointer; transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease; }
+.sales-doc-button:hover { transform: translateY(-1px); box-shadow: 0 3px 8px rgb(15 23 42 / 12%); }
+.sales-doc-button:focus-visible { outline: 3px solid rgb(37 99 235 / 30%); outline-offset: 2px; }
 .sales-doc-button.primary { border-color: #2563eb; background: #2563eb; color: #fff; }
+.sales-doc-button.primary:hover { border-color: #1d4ed8; background: #1d4ed8; }
 .sales-doc-button.secondary { background: #fff; color: #334155; }
+.sales-doc-button.secondary:hover { border-color: #94a3b8; background: #f8fafc; }
 .sales-document-preview { width: min(100%, 900px); margin: 0 auto; }
-.sales-document-sheet { width: min(100%, 850px); margin: 0 auto; overflow: visible; border: 1px solid #111; background: #fff; color: #111; font-family: Arial, Helvetica, sans-serif; font-size: 13px; line-height: 1.35; }
+.sales-document-sheet { width: min(100%, 850px); margin: 0 auto; overflow: visible; border: 1px solid #111; background: #fff; color: #111; font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 1.4; }
 .sales-doc-heading-grid { display: grid; grid-template-columns: 33.33% 66.67%; min-height: 42mm; border-bottom: 1px solid #111; }
 .sales-doc-heading-left { display: grid; grid-template-rows: 13mm 1fr; min-width: 0; border-right: 1px solid #111; }
 .sales-doc-heading-left > h1 { display: grid; margin: 0; padding: 2mm; place-items: center; border-bottom: 1px solid #111; font-size: 18px; font-weight: 700; }
 .sales-doc-party { min-width: 0; padding: 3mm 4mm; }
-.sales-doc-party h2 { margin: 0 0 2mm; font-size: 11px; }
-.sales-doc-party > strong, .sales-doc-party > span { display: block; margin: 1mm 0; overflow-wrap: anywhere; }
+.sales-doc-party h2 { margin: 0 0 2mm; font-size: 12px; }
+.sales-doc-party > strong, .sales-doc-party > span { display: block; margin: 1mm 0; overflow-wrap: anywhere; font-size: 13px; }
 .sales-doc-heading-right { display: grid; grid-template-rows: minmax(0, 1fr) auto; min-width: 0; }
 .sales-doc-company-info { display: flex; min-width: 0; align-items: flex-start; justify-content: space-between; gap: 3mm; padding: 3mm 4mm; }
-.sales-doc-company-copy { min-width: 0; font-size: 10.5px; line-height: 1.3; }
+.sales-doc-company-copy { min-width: 0; font-size: 11.5px; line-height: 1.35; }
 .sales-doc-company-copy p { margin: 0 0 1mm; overflow-wrap: anywhere; }
 .sales-doc-company-address { white-space: pre-line; }
-.sales-doc-company-contact { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1mm 3mm; font-size: 9px; }
-.sales-doc-company-copy .sales-doc-company-name { margin-bottom: 1.5mm; font-size: 12px; font-weight: 700; }
+.sales-doc-company-contact { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1mm 3mm; font-size: 10px; }
+.sales-doc-company-copy .sales-doc-company-name { margin-bottom: 1.5mm; font-size: 13px; font-weight: 700; }
 .sales-doc-company { display: flex; min-width: 0; align-items: center; justify-content: flex-end; }
 .sales-doc-logo { display: block; width: 30mm; height: 22mm; flex: 0 0 30mm; object-fit: contain; object-position: center; }
-.sales-doc-meta { display: flex; min-height: 10mm; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1mm 3mm; padding: 2mm 4mm; border-top: 1px solid #111; font-size: 10.5px; }
-.sales-doc-meta > strong { font-size: 11px; }
+.sales-doc-meta { display: flex; min-height: 10mm; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1mm 3mm; padding: 2mm 4mm; border-top: 1px solid #111; font-size: 11.5px; }
+.sales-doc-meta > strong { font-size: 12px; }
 .sales-doc-meta > span { white-space: nowrap; }
 .sales-doc-table { width: 100%; margin: 7mm 0 0; border-collapse: collapse; table-layout: fixed; }
-.sales-doc-table th, .sales-doc-table td { padding: 1.7mm 2mm; border: 1px solid #111; text-align: left; font-size: 10.5px; font-weight: 400; overflow-wrap: anywhere; }
+.sales-doc-table th, .sales-doc-table td { padding: 1.7mm 2mm; border: 1px solid #111; text-align: left; font-size: 11.5px; font-weight: 400; overflow-wrap: anywhere; }
 .sales-doc-table thead th { text-align: center; }
 .sales-doc-table th:first-child, .sales-doc-table td:first-child { width: 5.5%; text-align: center; }
 .sales-doc-table th:nth-child(2), .sales-doc-table td:nth-child(2) { width: 50%; }
@@ -41,7 +45,7 @@
 .sales-doc-words { min-height: 9mm; margin-top: 6mm; padding: 2mm 3mm; border-bottom: 1px solid #111; overflow-wrap: anywhere; }
 .sales-doc-words strong { margin-right: 1mm; }
 .sales-doc-payment-details { padding: 2mm 3mm; border-bottom: 1px solid #111; }
-.sales-doc-payment-details h2 { margin: 0 0 1mm; font-size: 10px; }
+.sales-doc-payment-details h2 { margin: 0 0 1mm; font-size: 11px; }
 .sales-doc-payment-details p { margin: 1mm 0; overflow-wrap: anywhere; }
 .sales-doc-bank-sign { display: grid; grid-template-columns: 70% 30%; min-height: 29mm; align-items: start; gap: 2mm; margin-top: 4mm; padding: 3mm; border-top: 1px solid #111; border-bottom: 1px solid #111; }
 .sales-doc-bank { align-self: start; white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -52,15 +56,15 @@
 .sales-doc-thanks { grid-column: 1 / -1; justify-self: center; margin-top: 1mm; }
 .sales-doc-signature { display: flex; min-height: 24mm; align-items: center; justify-content: space-around; gap: 4mm; padding: 3mm; border-top: 1px solid #111; border-bottom: 1px solid #111; }
 .sales-doc-signature strong { font-size: 12px; }
-.sales-doc-terms { padding: 3mm; border-top: 1px solid #111; font-size: 10.5px; line-height: 1.4; }
-.sales-doc-terms h2 { margin: 0 0 2mm; font-size: 10.5px; }
+.sales-doc-terms { padding: 3mm; border-top: 1px solid #111; font-size: 11.5px; line-height: 1.45; }
+.sales-doc-terms h2 { margin: 0 0 2mm; font-size: 12px; }
 .sales-doc-terms p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .sales-doc-note { margin: 0; padding: 2mm; color: #666; font-size: 9px; text-align: center; }
 .sales-doc-work-details { margin-top: 7mm; padding: 0 3mm; }
-.sales-doc-work-title { padding: 2mm; border: 1px solid #111; font-size: 13px; font-weight: 700; }
+.sales-doc-work-title { padding: 2mm; border: 1px solid #111; font-size: 14px; font-weight: 700; }
 .sales-doc-work-details > p, .sales-doc-work-details > section { padding: 2mm; border: 1px solid #111; border-top: 0; }
 .sales-doc-work-details > p { margin: 0; }
-.sales-doc-work-details section h2 { margin: 0 0 1mm; font-size: 11px; }
+.sales-doc-work-details section h2 { margin: 0 0 1mm; font-size: 12px; }
 .sales-doc-work-details section p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .sales-doc-work-amount { display: flex; align-items: center; justify-content: space-between; gap: 3mm; }
 .sales-doc-work-amount h2 { margin: 0 !important; }
@@ -112,12 +116,12 @@
   .sales-doc-heading-left > h1 { font-size: 15px; }
   .sales-doc-party, .sales-doc-company-info { padding: 2mm; }
   .sales-doc-company-info { gap: 1mm; }
-  .sales-doc-company-copy { font-size: 9px; }
-  .sales-doc-company-copy .sales-doc-company-name { font-size: 10px; }
-  .sales-doc-company-contact { grid-template-columns: 1fr; font-size: 8px; }
+  .sales-doc-company-copy { font-size: 10px; }
+  .sales-doc-company-copy .sales-doc-company-name { font-size: 11px; }
+  .sales-doc-company-contact { grid-template-columns: 1fr; font-size: 9px; }
   .sales-doc-logo { width: 20mm; height: 16mm; flex-basis: 20mm; }
   .sales-doc-meta { justify-content: flex-start; gap: 1mm 3mm; }
-  .sales-doc-table th, .sales-doc-table td { padding: 1.5mm 1mm; font-size: 9px; }
+  .sales-doc-table th, .sales-doc-table td { padding: 1.5mm 1mm; font-size: 10px; }
   .sales-doc-table th:nth-child(4), .sales-doc-table td:nth-child(4), .sales-doc-table th:last-child, .sales-doc-table td:last-child { overflow-wrap: anywhere; }
   .sales-module-fields { grid-template-columns: 1fr 1fr; }
   .sales-module-item, .sales-builder-form .sales-module-item { grid-template-columns: 1fr 1fr; }
@@ -126,6 +130,8 @@
 }
 
 @media (max-width: 480px) {
+  .sales-doc-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .sales-doc-button { width: 100%; min-width: 0; padding: 8px; font-size: 14px; }
   .sales-doc-bank-sign { grid-template-columns: 1fr; }
   .sales-doc-sign-off { min-height: 18mm; }
   .sales-doc-for { justify-self: end; }
@@ -148,36 +154,36 @@
   body:has(.sales-document-page.is-printing) .sales-document-page.is-printing > .sales-document-preview .sales-document-sheet * { visibility: visible !important; }
   .sales-document-page.is-printing { page: sales-document; display: block !important; width: auto !important; max-width: none !important; margin: 0 !important; padding: 0 !important; }
   .sales-document-page.is-printing .sales-document-preview { display: block !important; width: 170mm !important; max-width: 100% !important; margin: 0 auto !important; padding: 0 !important; }
-  .sales-document-page.is-printing .sales-document-sheet { width: 100% !important; max-width: none !important; margin: 0 auto !important; overflow: visible !important; border: 1px solid #111 !important; border-radius: 0 !important; box-shadow: none !important; font-family: Arial, Helvetica, sans-serif !important; font-size: 8pt !important; line-height: 1.3 !important; }
+  .sales-document-page.is-printing .sales-document-sheet { width: 100% !important; max-width: none !important; margin: 0 auto !important; overflow: visible !important; border: 1px solid #111 !important; border-radius: 0 !important; box-shadow: none !important; font-family: Arial, Helvetica, sans-serif !important; font-size: 8.5pt !important; line-height: 1.35 !important; }
   .sales-document-page.is-printing .sales-doc-heading-grid { min-height: 42mm !important; grid-template-columns: 33.33% 66.67% !important; break-inside: avoid; page-break-inside: avoid; }
   .sales-document-page.is-printing .sales-doc-heading-left { grid-template-rows: 13mm 1fr !important; }
   .sales-document-page.is-printing .sales-doc-heading-left > h1 { padding: 2mm !important; font-size: 13pt !important; }
   .sales-document-page.is-printing .sales-doc-party, .sales-document-page.is-printing .sales-doc-company-info { padding: 3mm 4mm !important; }
-  .sales-document-page.is-printing .sales-doc-party h2 { margin-bottom: 2mm !important; font-size: 8pt !important; }
-  .sales-document-page.is-printing .sales-doc-party > strong, .sales-document-page.is-printing .sales-doc-party > span { font-size: 8pt !important; }
-  .sales-document-page.is-printing .sales-doc-company-copy { font-size: 7.5pt !important; }
-  .sales-document-page.is-printing .sales-doc-company-copy .sales-doc-company-name { font-size: 9.5pt !important; }
-  .sales-document-page.is-printing .sales-doc-company-contact { font-size: 7pt !important; }
+  .sales-document-page.is-printing .sales-doc-party h2 { margin-bottom: 2mm !important; font-size: 8.5pt !important; }
+  .sales-document-page.is-printing .sales-doc-party > strong, .sales-document-page.is-printing .sales-doc-party > span { font-size: 8.5pt !important; }
+  .sales-document-page.is-printing .sales-doc-company-copy { font-size: 8pt !important; }
+  .sales-document-page.is-printing .sales-doc-company-copy .sales-doc-company-name { font-size: 10pt !important; }
+  .sales-document-page.is-printing .sales-doc-company-contact { font-size: 7.5pt !important; }
   .sales-document-page.is-printing .sales-doc-logo { width: 30mm !important; height: 22mm !important; flex-basis: 30mm !important; }
-  .sales-document-page.is-printing .sales-doc-meta { min-height: 10mm !important; padding: 2mm 4mm !important; font-size: 7.5pt !important; }
-  .sales-document-page.is-printing .sales-doc-meta > strong { font-size: 8.5pt !important; }
+  .sales-document-page.is-printing .sales-doc-meta { min-height: 10mm !important; padding: 2mm 4mm !important; font-size: 8pt !important; }
+  .sales-document-page.is-printing .sales-doc-meta > strong { font-size: 9pt !important; }
   .sales-document-page.is-printing .sales-doc-table { margin-top: 7mm !important; }
-  .sales-document-page.is-printing .sales-doc-table th, .sales-document-page.is-printing .sales-doc-table td { padding: 1.7mm 2mm !important; font-size: 8pt !important; line-height: 1.3 !important; }
+  .sales-document-page.is-printing .sales-doc-table th, .sales-document-page.is-printing .sales-doc-table td { padding: 1.7mm 2mm !important; font-size: 8.5pt !important; line-height: 1.35 !important; }
   .sales-document-page.is-printing .sales-doc-table thead { display: table-header-group; }
   .sales-document-page.is-printing .sales-doc-table tr { break-inside: avoid; page-break-inside: avoid; }
-  .sales-document-page.is-printing .sales-doc-words { margin-top: 6mm !important; padding: 2mm 3mm !important; font-size: 8.5pt !important; }
-  .sales-document-page.is-printing .sales-doc-payment-details { padding: 2mm 3mm !important; font-size: 8pt !important; }
+  .sales-document-page.is-printing .sales-doc-words { margin-top: 6mm !important; padding: 2mm 3mm !important; font-size: 9pt !important; }
+  .sales-document-page.is-printing .sales-doc-payment-details { padding: 2mm 3mm !important; font-size: 8.5pt !important; }
   .sales-document-page.is-printing .sales-doc-bank-sign { min-height: 29mm !important; grid-template-columns: 70% 30% !important; margin-top: 4mm !important; padding: 3mm !important; break-inside: avoid; page-break-inside: avoid; }
-  .sales-document-page.is-printing .sales-doc-bank, .sales-document-page.is-printing .sales-doc-bank p { font-size: 8pt !important; }
+  .sales-document-page.is-printing .sales-doc-bank, .sales-document-page.is-printing .sales-doc-bank p { font-size: 8.5pt !important; }
   .sales-document-page.is-printing .sales-doc-sign-off { min-height: 22mm !important; }
   .sales-document-page.is-printing .sales-doc-for { font-size: 9pt !important; }
-  .sales-document-page.is-printing .sales-doc-terms { padding: 3mm !important; font-size: 8.5pt !important; }
-  .sales-document-page.is-printing .sales-doc-terms h2 { font-size: 8.5pt !important; }
+  .sales-document-page.is-printing .sales-doc-terms { padding: 3mm !important; font-size: 9pt !important; }
+  .sales-document-page.is-printing .sales-doc-terms h2 { font-size: 9pt !important; }
   .sales-document-page.is-printing .sales-doc-work-details { margin-top: 7mm !important; padding: 0 3mm !important; }
-  .sales-document-page.is-printing .sales-doc-work-title, .sales-document-page.is-printing .sales-doc-work-details > p, .sales-document-page.is-printing .sales-doc-work-details > section { padding: 2mm !important; font-size: 8pt !important; break-inside: avoid; page-break-inside: avoid; }
-  .sales-document-page.is-printing .sales-doc-work-title { font-size: 10pt !important; }
-  .sales-document-page.is-printing .sales-doc-work-details section h2 { font-size: 8.5pt !important; }
-  .sales-document-page.is-printing .sales-doc-work-details section p { font-size: 8.5pt !important; }
+  .sales-document-page.is-printing .sales-doc-work-title, .sales-document-page.is-printing .sales-doc-work-details > p, .sales-document-page.is-printing .sales-doc-work-details > section { padding: 2mm !important; font-size: 8.5pt !important; break-inside: avoid; page-break-inside: avoid; }
+  .sales-document-page.is-printing .sales-doc-work-title { font-size: 10.5pt !important; }
+  .sales-document-page.is-printing .sales-doc-work-details section h2 { font-size: 9pt !important; }
+  .sales-document-page.is-printing .sales-doc-work-details section p { font-size: 9pt !important; }
   .sales-document-page.is-printing .sales-doc-note { display: none !important; }
   .sales-document-page.is-printing .sales-doc-brand, .sales-document-page.is-printing .sales-doc-logo { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 }
