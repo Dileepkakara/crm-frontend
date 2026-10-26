@@ -144,7 +144,7 @@
   .sales-builder-form .sales-module-gst .form-field { width: 100%; }
 }
 
-@page sales-document { size: A4; margin: 12mm; }
+@page sales-document { size: A4; margin: 5mm; }
 
 @media print {
   body:has(.sales-document-page.is-printing) * { visibility: hidden !important; }
@@ -153,8 +153,8 @@
   body:has(.sales-document-page.is-printing) .sales-document-page.is-printing > .sales-document-preview .sales-document-sheet,
   body:has(.sales-document-page.is-printing) .sales-document-page.is-printing > .sales-document-preview .sales-document-sheet * { visibility: visible !important; }
   .sales-document-page.is-printing { page: sales-document; display: block !important; width: auto !important; max-width: none !important; margin: 0 !important; padding: 0 !important; }
-  .sales-document-page.is-printing .sales-document-preview { display: block !important; width: 170mm !important; max-width: 100% !important; margin: 0 auto !important; padding: 0 !important; }
-  .sales-document-page.is-printing .sales-document-sheet { width: 100% !important; max-width: none !important; margin: 0 auto !important; overflow: visible !important; border: 1px solid #111 !important; border-radius: 0 !important; box-shadow: none !important; font-family: Arial, Helvetica, sans-serif !important; font-size: 8.5pt !important; line-height: 1.35 !important; }
+  .sales-document-page.is-printing .sales-document-preview { display: block !important; width: 227mm !important; max-width: none !important; margin: 0 auto !important; padding: 0 !important; zoom: .88; }
+  .sales-document-page.is-printing .sales-document-sheet { width: 100% !important; max-width: none !important; margin: 0 auto !important; overflow: visible !important; border: 1px solid #111 !important; border-radius: 0 !important; box-shadow: none !important; font-family: Arial, Helvetica, sans-serif !important; font-size: 8.5pt !important; line-height: 1.35 !important; break-inside: avoid !important; page-break-inside: avoid !important; break-after: avoid !important; page-break-after: avoid !important; }
   .sales-document-page.is-printing .sales-doc-heading-grid { min-height: 42mm !important; grid-template-columns: 33.33% 66.67% !important; break-inside: avoid; page-break-inside: avoid; }
   .sales-document-page.is-printing .sales-doc-heading-left { grid-template-rows: 13mm 1fr !important; }
   .sales-document-page.is-printing .sales-doc-heading-left > h1 { padding: 2mm !important; font-size: 13pt !important; }
