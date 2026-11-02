@@ -98,6 +98,7 @@ The API base URL includes `/api/v1`; for example, use `http://localhost:5000/api
 - Invoice forms support multiple description/quantity/rate rows; totals are calculated as subtotal minus discount plus tax. Older total-only invoices keep their saved total and identify unavailable line-item detail when printed.
 - Notification read state, dashboard/report summaries, and client-selected portal data use current mock records.
 - Browser-native printing is available for individual invoices, lead/client/record details, filtered follow-ups, dashboard summaries, and reports. Invoice printouts use recorded company preferences and transaction data; older invoices without line-item details clearly show that the breakdown is unavailable.
+- In backend mode, quotation, invoice, and work-order previews can be rendered as PDFs and saved as authenticated Cloudinary versions. Saved document viewing, downloading, printing, version history, and supporting PDF/image uploads use authenticated backend endpoints; mock mode does not simulate Cloudinary storage.
 - Quotations, invoices, and work orders can print either an individual record or the currently filtered module list using the browser’s print dialog.
 - Notifications, messaging, client approval, document delivery, and bank/payment verification are not connected to external services. Export is CSV; print-to-PDF uses the browser’s native print dialog.
 - Role and portal views are previews only. Production identity, ownership enforcement, and access control must be implemented on the backend.

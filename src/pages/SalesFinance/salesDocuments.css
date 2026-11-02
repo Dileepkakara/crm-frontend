@@ -7,6 +7,17 @@
 .sales-doc-button.primary:hover { border-color: #1d4ed8; background: #1d4ed8; }
 .sales-doc-button.secondary { background: #fff; color: #334155; }
 .sales-doc-button.secondary:hover { border-color: #94a3b8; background: #f8fafc; }
+.sales-doc-button:disabled { opacity: .6; cursor: wait; transform: none; }
+.sales-doc-upload { position: relative; overflow: hidden; }
+.sales-doc-upload input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.sales-doc-status { align-self: center; padding: 6px 10px; border-radius: 999px; background: #f1f5f9; color: #475569; font-size: 13px; font-weight: 650; }
+.sales-doc-status.uploaded { background: #dcfce7; color: #166534; }
+.sales-doc-status.needs-regeneration { background: #fef3c7; color: #92400e; }
+.sales-doc-version-history, .sales-doc-attachment { display: flex; width: 100%; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+.sales-doc-version-history { padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc; }
+.sales-doc-version-history > div { display: flex; width: 100%; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+.sales-doc-version-history .danger-action { color: #b91c1c; }
+.sales-doc-version-history .danger-action:hover { border-color: #fecaca; background: #fff1f2; color: #991b1b; }
 .sales-document-preview { width: min(100%, 900px); margin: 0 auto; }
 .sales-document-sheet { width: min(100%, 850px); margin: 0 auto; overflow: visible; border: 1px solid #111; background: #fff; color: #111; font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 1.4; }
 .sales-doc-heading-grid { display: grid; grid-template-columns: 33.33% 66.67%; min-height: 42mm; border-bottom: 1px solid #111; }

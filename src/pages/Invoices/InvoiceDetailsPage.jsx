@@ -7,6 +7,7 @@ import { readPreferences } from '../../services/storageService'
 import { loadCompanySettings } from '../../api/companySettingsApi'
 import { getInvoicePaid } from '../../utils/formatters'
 import { useAuth } from '../../auth/useAuth'
+import { usePermissions } from '../../auth/usePermissions'
 import { canAccessRecord } from '../../services/permissionsService'
 import SalesDocument from '../SalesFinance/SalesDocument'
 import { apiClient, isBackendMode } from '../../api/apiClient'
@@ -17,6 +18,7 @@ export default function InvoiceDetailsPage() {
   const navigate = useNavigate()
   const { notify } = useApp()
   const { user } = useAuth()
+  const { hasPermission: can } = usePermissions()
   const [invoice, setInvoice] = useState(null)
   const [client, setClient] = useState(null)
   const [payments, setPayments] = useState([])
@@ -70,8 +72,9 @@ export default function InvoiceDetailsPage() {
 
   return <div className={`page sales-document-page invoice-document-page${printing ? ' is-printing' : ''}`}>
     <PageHeader title={`Invoice ${invoice.id}`} description={invoice.project || 'Invoice details'} />
-    <SalesDocument kind="Invoice" record={invoice} client={client} preferences={preferences}
+    <SalesDocument key={invoice.id} kind="Invoice" record={invoice} client={client} preferences={preferences}
       paid={paid} balance={balance} payments={payments}
-      onBack={() => navigate('/invoices')} onPrint={() => setPrinting(true)} />
+      onBack={() => navigate('/invoices')} onPrint={user?.role === ROLES.CLIENT ? undefined : () => setPrinting(true)}
+      resource="invoices" canGenerateDocument={can('invoices.manage')} />
   </div>
 }

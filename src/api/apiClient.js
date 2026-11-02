@@ -32,6 +32,7 @@ async function parseResponse(response) {
 
 async function backendRequest(path, method, payload, { retry = true, retryNetwork = true } = {}) {
   const token = getAccessToken()
+  const isFormData = typeof FormData !== 'undefined' && payload instanceof FormData
   let response
   try {
     response = await fetch(`${baseUrl}${path}`, {
@@ -39,10 +40,10 @@ async function backendRequest(path, method, payload, { retry = true, retryNetwor
       credentials: 'include',
       cache: 'no-store',
       headers: {
-        ...(payload === undefined ? {} : { 'Content-Type': 'application/json' }),
+        ...(payload === undefined || isFormData ? {} : { 'Content-Type': 'application/json' }),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      ...(payload === undefined ? {} : { body: JSON.stringify(payload) }),
+      ...(payload === undefined ? {} : { body: isFormData ? payload : JSON.stringify(payload) }),
     })
   } catch (cause) {
     if (method === 'GET' && retryNetwork) {
@@ -79,6 +80,39 @@ async function backendRequest(path, method, payload, { retry = true, retryNetwor
     throw error
   }
   return result
+}
+
+async function backendFileRequest(path, download, retry = true) {
+  const token = getAccessToken()
+  let response
+  try {
+    response = await fetch(`${baseUrl}${path}${download ? '?download=true' : ''}`, {
+      method: 'GET',
+      credentials: 'include',
+      cache: 'no-store',
+      headers: token ? { Authorization: ['Bearer', token].join(' ') } : {},
+    })
+  } catch (cause) {
+    throw new Error(`Could not reach the CRM API at ${baseUrl}.`, { cause })
+  }
+  if (response.status === 401 && retry) {
+    try {
+      const refreshed = await refreshAccessToken()
+      if (refreshed) return backendFileRequest(path, download, false)
+      window.dispatchEvent(new Event('crm:session-expired'))
+    } catch (error) {
+      if (error.status === 401) window.dispatchEvent(new Event('crm:session-expired'))
+      throw error
+    }
+  }
+  if (!response.ok) {
+    const result = await parseResponse(response)
+    const error = new Error(result?.error?.message || `Request failed (${response.status}).`)
+    error.status = response.status
+    error.code = result?.error?.code
+    throw error
+  }
+  return response.blob()
 }
 
 export async function refreshAccessToken() {
@@ -171,6 +205,32 @@ export const apiClient = {
   action: (resource, id, action, payload) => request('POST', resource, payload, { id, action }),
   auth: (action, payload, method = 'POST') => backendRequest(`/auth/${encodeURIComponent(action)}`, method, payload),
   endpoint: (path, method, payload) => backendRequest(path, method, payload),
+  uploadResourceFile: (resource, id, file, kind = 'documents') => {
+    if (!isBackendMode) throw new Error('Cloudinary file storage is available only in backend mode.')
+    const endpoint = API_ENDPOINTS[resource]
+    if (!endpoint) throw new Error(`Unknown API resource: ${resource}`)
+    const formData = new FormData()
+    formData.append('file', file, file.name)
+    return backendRequest(`${endpoint}/${encodeURIComponent(id)}/${kind}`, 'POST', formData)
+  },
+  getResourceFile: (resource, id, version, { attachment = false, download = false } = {}) => {
+    if (!isBackendMode) throw new Error('Cloudinary file storage is available only in backend mode.')
+    const endpoint = API_ENDPOINTS[resource]
+    if (!endpoint) throw new Error(`Unknown API resource: ${resource}`)
+    const filePath = attachment
+      ? `${endpoint}/${encodeURIComponent(id)}/attachments/${encodeURIComponent(version)}`
+      : `${endpoint}/${encodeURIComponent(id)}/documents/${encodeURIComponent(version)}`
+    return backendFileRequest(filePath, download)
+  },
+  deleteResourceDocument: (resource, id, version) => {
+    if (!isBackendMode) throw new Error('Cloudinary file storage is available only in backend mode.')
+    const endpoint = API_ENDPOINTS[resource]
+    if (!endpoint) throw new Error(`Unknown API resource: ${resource}`)
+    return backendRequest(
+      `${endpoint}/${encodeURIComponent(id)}/documents/${encodeURIComponent(version)}`,
+      'DELETE',
+    )
+  },
 }
 
 export const resetDemoData = async () => {

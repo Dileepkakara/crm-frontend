@@ -1,6 +1,10 @@
+import { useRef, useState } from 'react'
+import { Download, Eye, FileDown, History, Printer, Trash2, Upload } from 'lucide-react'
+import { apiClient, isBackendMode } from '../../api/apiClient'
+import { useApp } from '../../context/useApp'
 import { formatCurrency } from '../../utils/formatters'
 import { amountInWords } from '../../utils/amountInWords'
-import { FileDown } from 'lucide-react'
+import { createDocumentPdf } from './documentPdf'
 import './salesDocuments.css'
 
 const referenceCompanyDetails = {
@@ -45,9 +49,165 @@ function CompanyBrand({ name }) {
 }
 
 export default function SalesDocument({
-  kind, record, client, preferences = {}, onPrint, onDownloadPdf, onBack, onEdit, canEdit = false,
+  kind, record, client, preferences = {}, onPrint, onBack, onEdit, canEdit = false,
+  resource, canGenerateDocument = false,
   paid = 0, balance = 0, payments = [],
 }) {
+  const { notify } = useApp()
+  const sheetRef = useRef(null)
+  const [savedRecord, setSavedRecord] = useState(record)
+  const [documentBusy, setDocumentBusy] = useState(false)
+  const [documentStage, setDocumentStage] = useState('')
+  const [attachmentBusy, setAttachmentBusy] = useState(false)
+  const [deletingVersion, setDeletingVersion] = useState('')
+  const [showHistory, setShowHistory] = useState(false)
+  const [documentError, setDocumentError] = useState('')
+  const versions = savedRecord.documentVersions || []
+  const currentDocument = versions.find((item) => item.isCurrentVersion)
+    || [...versions].sort((a, b) => Number(b.versionNumber) - Number(a.versionNumber))[0]
+  const needsRegeneration = Boolean(savedRecord.documentNeedsRegeneration)
+  const readyDocument = currentDocument && !needsRegeneration
+  const canGenerate = canGenerateDocument && isBackendMode
+
+  async function generateAndSaveDocument() {
+    if (!canGenerate || !resource) {
+      notify('Document storage is available only to authorized staff in backend mode.', 'error')
+      return
+    }
+    if (!sheetRef.current) {
+      notify('The document preview is not ready to generate.', 'error')
+      return
+    }
+    setDocumentBusy(true)
+    setDocumentStage('Generating')
+    setDocumentError('')
+    try {
+      const fileName = `${record.number || record.id || kind}.pdf`
+      const blob = await createDocumentPdf(sheetRef.current, fileName)
+      const file = new File([blob], fileName, { type: 'application/pdf' })
+      setDocumentStage('Uploading')
+      const { data: uploaded } = await apiClient.uploadResourceFile(resource, record.id, file)
+      const previousVersions = (savedRecord.documentVersions || []).map((version) => ({
+        ...version,
+        isCurrentVersion: false,
+      }))
+      const nextVersions = previousVersions.some((version) => version.versionNumber === uploaded.versionNumber)
+        ? previousVersions.map((version) => version.versionNumber === uploaded.versionNumber ? uploaded : version)
+        : [...previousVersions, uploaded]
+      setSavedRecord({
+        ...savedRecord,
+        documentVersions: nextVersions.map((version) => ({
+          ...version,
+          isCurrentVersion: version.versionNumber === uploaded.versionNumber,
+        })),
+        documentNeedsRegeneration: false,
+      })
+      notify(`Version ${uploaded.versionNumber} was saved securely.`)
+    } catch (error) {
+      const message = error.message || `Could not generate and save the ${kind.toLowerCase()} PDF.`
+      setDocumentError(message)
+      notify(message, 'error')
+    } finally {
+      setDocumentBusy(false)
+      setDocumentStage('')
+    }
+  }
+
+  async function openSavedFile(version, { attachment = false, download = false } = {}) {
+    if (!resource || !record.id) return
+    let previewWindow
+    if (!download) {
+      previewWindow = window.open('about:blank', '_blank')
+      if (!previewWindow) {
+        notify('Allow pop-ups to view the saved document.', 'error')
+        return
+      }
+    }
+    setDocumentBusy(true)
+    try {
+      const blob = await apiClient.getResourceFile(resource, record.id, version, { attachment, download })
+      const url = URL.createObjectURL(blob)
+      if (download) {
+        const link = document.createElement('a')
+        link.href = url
+        link.download = attachment
+          ? savedRecord.attachments?.find((item) => String(item._id || item.id) === String(version))?.originalFileName || 'attachment'
+          : currentDocument?.originalFileName || `${record.number || record.id}.pdf`
+        link.click()
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+      } else {
+        previewWindow.location.replace(url)
+        previewWindow.opener = null
+        window.setTimeout(() => URL.revokeObjectURL(url), 60000)
+        if (kind === 'Invoice' || kind === 'Quotation' || kind === 'Work Order') {
+          notify('The saved PDF opened in a new tab. Use the PDF viewer controls to print.')
+        }
+      }
+    } catch (error) {
+      previewWindow?.close()
+      if (!attachment && error.code === 'STORED_FILE_MISSING') {
+        setSavedRecord((current) => ({ ...current, documentNeedsRegeneration: true }))
+      }
+      notify(error.message || 'Could not retrieve the saved file.', 'error')
+    } finally {
+      setDocumentBusy(false)
+    }
+  }
+
+  async function deleteSavedVersion(version) {
+    if (!canGenerate || !resource || !record.id) return
+    const versionNumber = Number(version.versionNumber)
+    if (!Number.isInteger(versionNumber) || version === currentDocument) {
+      notify('The current document version cannot be deleted.', 'error')
+      return
+    }
+    if (!window.confirm(`Delete version ${versionNumber} (${version.originalFileName})? This cannot be undone.`)) return
+
+    setDeletingVersion(String(versionNumber))
+    try {
+      await apiClient.deleteResourceDocument(resource, record.id, versionNumber)
+      setSavedRecord((current) => ({
+        ...current,
+        documentVersions: (current.documentVersions || []).filter((item) =>
+          Number(item.versionNumber) !== versionNumber),
+      }))
+      notify(`Version ${versionNumber} was deleted.`)
+    } catch (error) {
+      if (error.code === 'CLOUDINARY_DELETE_FAILED') {
+        setSavedRecord((current) => ({
+          ...current,
+          documentVersions: (current.documentVersions || []).filter((item) =>
+            Number(item.versionNumber) !== versionNumber),
+        }))
+        notify('The version was removed from history, but Cloudinary could not delete its stored file.', 'error')
+      } else {
+        notify(error.message || `Could not delete version ${versionNumber}.`, 'error')
+      }
+    } finally {
+      setDeletingVersion('')
+    }
+  }
+
+  async function uploadSupportingFile(event) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    if (!canGenerate || !resource) {
+      notify('Only authorized staff can upload supporting files.', 'error')
+      return
+    }
+    setAttachmentBusy(true)
+    try {
+      const { data: attachment } = await apiClient.uploadResourceFile(resource, record.id, file, 'attachments')
+      setSavedRecord((current) => ({ ...current, attachments: [...(current.attachments || []), attachment] }))
+      notify('Supporting file uploaded securely.')
+    } catch (error) {
+      notify(error.message || 'Could not upload the supporting file.', 'error')
+    } finally {
+      setAttachmentBusy(false)
+    }
+  }
+
   const isWorkOrder = kind === 'Work Order'
   const isFinancialDocument = kind === 'Quotation' || kind === 'Invoice'
   const items = record.items?.length ? record.items
@@ -101,10 +261,49 @@ export default function SalesDocument({
     <div className="sales-doc-actions no-print">
       {onBack && <button type="button" className="sales-doc-button secondary" onClick={onBack}>Back</button>}
       {canEdit && onEdit && <button type="button" className="sales-doc-button secondary" onClick={onEdit}>Edit</button>}
-      {onPrint && <button type="button" className="sales-doc-button primary" onClick={onPrint}>Print {kind}</button>}
-      {onDownloadPdf && <button type="button" className="sales-doc-button secondary" onClick={onDownloadPdf}><FileDown size={17} /> Download PDF</button>}
+      {canGenerate && <button type="button" className="sales-doc-button primary" disabled={documentBusy} onClick={generateAndSaveDocument}>
+        <FileDown size={17} />{documentBusy ? `${documentStage}…` : needsRegeneration ? 'Regenerate PDF' : currentDocument ? 'Generate New Version' : 'Save Final Document'}
+      </button>}
+      {documentBusy && <span className="sales-doc-status" role="status">{documentStage}…</span>}
+      {readyDocument && <>
+        <button type="button" className="sales-doc-button secondary" disabled={documentBusy} onClick={() => openSavedFile('current')}><Eye size={17} /> View Document</button>
+        <button type="button" className="sales-doc-button secondary" disabled={documentBusy} onClick={() => openSavedFile('current', { download: true })}><Download size={17} /> Download PDF</button>
+        <button type="button" className="sales-doc-button secondary" disabled={documentBusy} onClick={() => openSavedFile('current')}><Printer size={17} /> Print</button>
+      </>}
+      {onPrint && <button type="button" className="sales-doc-button secondary" onClick={onPrint}>Print Preview</button>}
+      {!currentDocument && <span className="sales-doc-status">Not Generated</span>}
+      {needsRegeneration && <span className="sales-doc-status needs-regeneration">Updated — regeneration required</span>}
+      {readyDocument && <span className="sales-doc-status uploaded">
+        Uploaded · v{currentDocument.versionNumber} · {currentDocument.originalFileName} · {formatDocumentDate(currentDocument.uploadedAt)}
+      </span>}
+      {documentError && <span className="sales-doc-status needs-regeneration" role="status">Failed · {documentError}</span>}
+      {versions.length > 1 && <button type="button" className="sales-doc-button secondary" onClick={() => setShowHistory((visible) => !visible)}><History size={17} /> Version History</button>}
+      {canGenerate && <label className="sales-doc-button secondary sales-doc-upload">
+        <Upload size={17} />{attachmentBusy ? 'Uploading…' : 'Add Attachment'}
+        <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" disabled={attachmentBusy} onChange={uploadSupportingFile} />
+      </label>}
+      {showHistory && <div className="sales-doc-version-history">
+        {versions.slice().sort((a, b) => Number(b.versionNumber) - Number(a.versionNumber)).map((version) => <div key={version._id || version.versionNumber}>
+          <span>Version {version.versionNumber} · {version.isCurrentVersion && !needsRegeneration ? 'Current' : 'Previous'} · {version.originalFileName}</span>
+          <button type="button" className="sales-doc-button secondary" disabled={documentBusy} onClick={() => openSavedFile(version.versionNumber)}>View</button>
+          <button type="button" className="sales-doc-button secondary" disabled={documentBusy || Boolean(deletingVersion)} onClick={() => openSavedFile(version.versionNumber, { download: true })}>Download</button>
+          {canGenerate && version !== currentDocument && <button
+            type="button"
+            className="sales-doc-button secondary danger-action"
+            title={`Delete version ${version.versionNumber}`}
+            aria-label={`Delete document version ${version.versionNumber}`}
+            disabled={documentBusy || Boolean(deletingVersion)}
+            onClick={() => deleteSavedVersion(version)}
+          >{deletingVersion === String(version.versionNumber) ? 'Deleting…' : <Trash2 size={17} />}</button>}
+        </div>)}
+      </div>}
+      {(savedRecord.attachments || []).map((attachment) => <span className="sales-doc-attachment" key={attachment._id || attachment.id}>
+        {attachment.originalFileName}
+        <button type="button" className="sales-doc-button secondary" disabled={documentBusy} onClick={() => openSavedFile(attachment._id || attachment.id, { attachment: true })}>View</button>
+        <button type="button" className="sales-doc-button secondary" disabled={documentBusy} onClick={() => openSavedFile(attachment._id || attachment.id, { attachment: true, download: true })}>Download</button>
+      </span>)}
     </div>
-    <article className={`sales-document-sheet${isWorkOrder ? ' sales-work-order-sheet' : ''}${isFinancialDocument ? ' sales-doc-standard-sheet' : ''}`}>
+    <article ref={sheetRef} className={`sales-document-sheet${isWorkOrder ? ' sales-work-order-sheet' : ''}${isFinancialDocument ? ' sales-doc-standard-sheet' : ''}`}>
       <div className={`sales-doc-heading-grid${isFinancialDocument ? ' sales-doc-standard-header' : ''}`}>
         <div className="sales-doc-heading-left">
           <h1>{kind}</h1>

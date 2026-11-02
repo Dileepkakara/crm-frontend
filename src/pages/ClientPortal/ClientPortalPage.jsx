@@ -24,6 +24,8 @@ export default function ClientPortalPage() {
   const [portalLoading, setPortalLoading] = useState(true)
   const [portalError, setPortalError] = useState('')
   const [quotationPreview, setQuotationPreview] = useState(null)
+  const [agreementPreview, setAgreementPreview] = useState(null)
+  const [invoicePreview, setInvoicePreview] = useState(null)
   const [pendingDecision, setPendingDecision] = useState(null)
   const [workingDecision, setWorkingDecision] = useState(false)
   const [pendingAgreementDecision, setPendingAgreementDecision] = useState(null)
@@ -32,7 +34,6 @@ export default function ClientPortalPage() {
   const [pendingInvoiceDecision, setPendingInvoiceDecision] = useState(null)
   const [invoiceRejectionReason, setInvoiceRejectionReason] = useState('')
   const [workingInvoiceDecision, setWorkingInvoiceDecision] = useState(false)
-  const [printing, setPrinting] = useState(false)
 
   const refreshClientPortal = useCallback(async () => {
     const { data: portal } = await apiClient.get('portal')
@@ -206,14 +207,6 @@ export default function ClientPortalPage() {
   }, [notify, isClient, user, loadClientPortal])
 
   useEffect(() => {
-    if (!printing) return undefined
-    const finish = () => setPrinting(false)
-    window.addEventListener('afterprint', finish)
-    const timer = window.setTimeout(() => window.print(), 80)
-    return () => { window.removeEventListener('afterprint', finish); window.clearTimeout(timer) }
-  }, [printing])
-
-  useEffect(() => {
     if (isBackendMode && isClient) return
     if (!selected) return
     Promise.all(['quotations', 'invoices', 'projects', 'agreements', 'payments'].map((resource) => apiFor[resource].list()))
@@ -242,12 +235,27 @@ export default function ClientPortalPage() {
     .filter((payment) => payment.status === 'Recorded')
     .reduce((total, payment) => total + Number(payment.amount || 0), 0)
 
-  if (quotationPreview) return <div className={`page sales-document-page quotation-document-page${printing ? ' is-printing' : ''}`}>
-    <PageHeader title="Quotation preview" description="Review your saved quotation. Use Download PDF to save or print a client-ready copy." />
-    <SalesDocument kind="Quotation" record={quotationPreview} client={client}
-      onBack={() => setQuotationPreview(null)}
-      onPrint={() => setPrinting(true)}
-      onDownloadPdf={() => { notify('In the print dialog, select Save as PDF to download this quotation.'); setPrinting(true) }} />
+  if (invoicePreview) {
+    const paid = getInvoicePaid(invoicePreview.id, data.payments)
+    const total = Number(invoicePreview.total ?? invoicePreview.amount) || 0
+    return <div className="page sales-document-page invoice-document-page">
+      <PageHeader title="Invoice document" description="View the current invoice PDF saved for your account." />
+      <SalesDocument key={invoicePreview.id} kind="Invoice" record={invoicePreview} client={client}
+        paid={paid} balance={Math.max(0, total - paid)} payments={data.payments.filter((payment) => payment.invoiceId === invoicePreview.id)}
+        resource="invoices" onBack={() => setInvoicePreview(null)} />
+    </div>
+  }
+
+  if (agreementPreview) return <div className="page sales-document-page work-order-document-page">
+    <PageHeader title="Work order document" description="View the current work order PDF saved for your account." />
+    <SalesDocument key={agreementPreview.id} kind="Work Order" record={agreementPreview} client={client}
+      resource="agreements" onBack={() => setAgreementPreview(null)} />
+  </div>
+
+  if (quotationPreview) return <div className="page sales-document-page quotation-document-page">
+    <PageHeader title="Quotation document" description="View the current quotation PDF saved for your account." />
+    <SalesDocument key={quotationPreview.id} kind="Quotation" record={quotationPreview} client={client}
+      resource="quotations" onBack={() => setQuotationPreview(null)} />
   </div>
 
   if (portalLoading) return <div className="page"><PageHeader title="Client portal" description="Loading your client-specific workspace." />
@@ -303,6 +311,7 @@ export default function ClientPortalPage() {
           <div className="portal-document-card" key={item.id}>
             <div><strong>{item.id}</strong><small>{item.kind} · {formatDate(item.issueDate)}{item.kind === 'Invoice' ? ` · Balance ${formatCurrency(item.balance)} · Status is read-only` : ''}</small></div>
             <strong>{formatCurrency(item.total)}</strong><Badge>{item.status}</Badge>
+            {item.kind === 'Invoice' && <Button variant="secondary" onClick={() => setInvoicePreview(item)}>View invoice</Button>}
             {item.kind === 'Invoice' && item.clientDecision?.status && <Badge>{`Client ${item.clientDecision.status}`}</Badge>}
             {item.kind === 'Invoice' && isClient && !item.clientDecision?.status && ['Issued', 'Partially Paid', 'Overdue'].includes(item.status) && <label className="portal-invoice-decision">
               <span>Your decision</span>
@@ -353,7 +362,9 @@ export default function ClientPortalPage() {
           {quotation.terms && <p className="muted"><strong>Terms:</strong> {quotation.terms}</p>}
           {decision && <p className="muted">Decision recorded {formatDecisionTimestamp(decision)}.</p>}
           <div className="sales-module-actions portal-quotation-actions">
-            <Button variant="secondary" onClick={() => viewQuotation(quotation)}>View / Download PDF</Button>
+            <Button variant="secondary" onClick={() => viewQuotation(quotation)}>
+              {quotation.documentVersions?.length && !quotation.documentNeedsRegeneration ? 'View saved quotation' : 'View quotation details'}
+            </Button>
             {awaitingDecision && <>
               <Button className="portal-accept-button" disabled={workingDecision || Boolean(pendingDecision)} onClick={() => setPendingDecision({ quotation, action: 'approve' })}><Check size={16} /> Accept</Button>
               <Button className="portal-reject-button" disabled={workingDecision || Boolean(pendingDecision)} onClick={() => setPendingDecision({ quotation, action: 'reject' })}><X size={16} /> Reject</Button>
@@ -388,6 +399,11 @@ export default function ClientPortalPage() {
             <Badge>{agreement.status}</Badge>
           </div>
           <p className="muted">Target completion {formatDate(agreement.deadline)}{agreement.paymentMilestones ? ` · ${agreement.paymentMilestones}` : ''}</p>
+          <div className="sales-module-actions portal-quotation-actions">
+            <Button variant="secondary" onClick={() => setAgreementPreview(agreement)}>
+              {agreement.documentVersions?.length && !agreement.documentNeedsRegeneration ? 'View work order document' : 'View work order details'}
+            </Button>
+          </div>
           {awaitingApproval && <>
             <div className="sales-module-actions portal-quotation-actions">
               <label className="portal-status-control">

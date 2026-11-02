@@ -14,6 +14,7 @@ import { loadCompanySettings } from '../../api/companySettingsApi'
 import { formatCurrency, formatDate } from '../../utils/formatters'
 import { amountInWords } from '../../utils/amountInWords'
 import { apiClient, isBackendMode } from '../../api/apiClient'
+import { deliverStoredDocument } from '../SalesFinance/documentPdf'
 
 const today = () => new Date().toISOString().slice(0, 10)
 const nextNumber = () => `QT-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`
@@ -81,7 +82,6 @@ export default function QuotationsPage() {
   const [form, setForm] = useState(blankForm)
   const [clientQuery, setClientQuery] = useState('')
   const [preview, setPreview] = useState(null)
-  const [previewSaved, setPreviewSaved] = useState(false)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const [printing, setPrinting] = useState(false)
@@ -244,7 +244,6 @@ export default function QuotationsPage() {
       setEditing(null)
       setForm(blankForm())
       setPreview(saved)
-      setPreviewSaved(true)
       notify(editing ? 'Quotation updated.' : 'Quotation draft saved.')
     } catch (cause) {
       setError(cause.message || 'Could not save the quotation.')
@@ -291,38 +290,29 @@ export default function QuotationsPage() {
       return
     }
     setError('')
-    setPreviewSaved(false)
     setPreview(makeDocument(editing?.status || 'Draft'))
   }
   function printPreview() { setPrinting(true) }
-  async function downloadPdf() {
-    setPdfLoading(preview.id)
-    notify('In the print dialog, select Save as PDF to download this quotation.')
-    try {
-      setPreview(await apiFor.quotations.get(preview.id))
-      setPreviewSaved(true)
-      setPrinting(true)
-    } catch (cause) {
-      notify(cause.message || 'Could not load the saved quotation for PDF.', 'error')
-    } finally {
-      setPdfLoading('')
+  async function printRecord(record) {
+    if (record.documentNeedsRegeneration || !record.documentVersions?.some((version) => version.isCurrentVersion)) {
+      notify('Generate a current saved PDF from the quotation preview before printing.', 'error')
+      return
     }
-  }
-  function printRecord(record) {
-    setPreview(record)
-    setPreviewSaved(true)
-    setPrinting(true)
+    try {
+      await deliverStoredDocument('quotations', record)
+    } catch (cause) {
+      notify(cause.message || 'Could not open the saved quotation PDF.', 'error')
+    }
   }
   async function downloadPdfRecord(record) {
     setPdfLoading(record.id)
-    notify('In the print dialog, select Save as PDF to download this quotation.')
     try {
-      const savedRecord = await apiFor.quotations.get(record.id)
-      setPreview(savedRecord)
-      setPreviewSaved(true)
-      setPrinting(true)
+      if (record.documentNeedsRegeneration || !record.documentVersions?.some((version) => version.isCurrentVersion)) {
+        throw new Error('Generate a current saved PDF from the quotation preview before downloading.')
+      }
+      await deliverStoredDocument('quotations', record, { download: true })
     } catch (cause) {
-      notify(cause.message || 'Could not load the saved quotation for PDF.', 'error')
+      notify(cause.message || 'Could not download the saved quotation PDF.', 'error')
     } finally {
       setPdfLoading('')
     }
@@ -346,12 +336,12 @@ export default function QuotationsPage() {
   }
 
   if (preview) return <div className={`page sales-document-page quotation-document-page${printing ? ' is-printing' : ''}`}>
-    <PageHeader title="Quotation preview" description="Review this demo quotation before printing." />
-    <SalesDocument kind="Quotation" record={preview}
+    <PageHeader title="Quotation preview" description="Review the saved quotation and generate a secure PDF document." />
+    <SalesDocument key={preview.id} kind="Quotation" record={preview}
       client={clients.find((item) => item.id === preview.clientId)} preferences={preferences}
-      onBack={() => { setPreview(null); setPreviewSaved(false) }} onPrint={printPreview}
-      onDownloadPdf={previewSaved ? downloadPdf : undefined}
-      onEdit={can('quotations.create') ? () => { startEdit(preview); setPreview(null); setPreviewSaved(false) } : undefined}
+      onBack={() => setPreview(null)} onPrint={user?.role === 'client' ? undefined : printPreview}
+      resource="quotations" canGenerateDocument={can('quotations.create')}
+      onEdit={can('quotations.create') ? () => { startEdit(preview); setPreview(null) } : undefined}
       canEdit={can('quotations.create')} />
   </div>
 
@@ -433,7 +423,7 @@ export default function QuotationsPage() {
                 {allowedStatuses.map((value) => <option key={value} value={value}>{value}</option>)}
               </select>}
             </td><td><div className="sales-module-row-actions quotation-row-actions">
-              <button type="button" onClick={() => { setPreview(record); setPreviewSaved(true) }}><Eye size={16} />View</button>
+              <button type="button" onClick={() => setPreview(record)}><Eye size={16} />View</button>
               <button type="button" onClick={() => printRecord(record)}><Printer size={16} />Print</button>
               <button type="button" aria-label={`Download PDF for quotation ${record.id}`} disabled={Boolean(pdfLoading)} onClick={() => downloadPdfRecord(record)}><FileDown size={16} />{pdfLoading === record.id ? 'Preparing…' : 'PDF'}</button>
               {can('invoices.manage') && record.status === 'Accepted' && (record.items?.length || record.lineItems?.length) > 0 && <button type="button" onClick={() => navigate('/invoices', { state: { invoiceSource: { kind: 'quotation', record } } })}>Create invoice</button>}

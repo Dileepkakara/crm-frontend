@@ -213,10 +213,11 @@ export default function AgreementsPage() {
   }
 
   if (preview) return <div className={`page sales-document-page work-order-document-page${printing ? ' is-printing' : ''}`}>
-    <PageHeader title="Work order preview" description="Review this demo work order before printing." />
-    <SalesDocument kind="Work Order" record={preview}
+    <PageHeader title="Work order preview" description="Review the work order and save its final PDF to secure document storage." />
+    <SalesDocument key={preview.id} kind="Work Order" record={preview}
       client={clients.find((item) => item.id === preview.clientId)} preferences={preferences}
       onBack={() => setPreview(null)} onPrint={() => setPrinting(true)}
+      resource="agreements" canGenerateDocument={can('agreements.approve')}
       onEdit={can('agreements.approve') ? () => { startEdit(preview); setPreview(null) } : undefined}
       canEdit={can('agreements.approve')} />
   </div>
