@@ -1,10 +1,11 @@
-import { useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Download, Eye, FileDown, History, Printer, Trash2, Upload } from 'lucide-react'
 import { apiClient, isBackendMode } from '../../api/apiClient'
 import { useApp } from '../../context/useApp'
 import { formatCurrency } from '../../utils/formatters'
 import { amountInWords } from '../../utils/amountInWords'
 import { createDocumentPdf } from './documentPdf'
+import { getBillingDetails } from './billingDetails'
 import './salesDocuments.css'
 
 const referenceCompanyDetails = {
@@ -42,6 +43,17 @@ function PartyDetails({ title, name, company, address, gstin, email, phone }) {
   </section>
 }
 
+function BillingDetails({ record, client }) {
+  const { companyName, phone, gstin, address } = getBillingDetails(record, client)
+  return <section className="sales-doc-party">
+    <h2>Bill To</h2>
+    {companyName && <strong>{companyName}</strong>}
+    {phone && <span>Phone: {phone}</span>}
+    {gstin && <span>GSTIN: {gstin}</span>}
+    {address && <span>Address: {address}</span>}
+  </section>
+}
+
 function CompanyBrand({ name }) {
   return <div className="sales-doc-company">
     <img className="sales-doc-logo" src="/design-blocks-logo.png" alt={`${name} logo`} />
@@ -49,12 +61,13 @@ function CompanyBrand({ name }) {
 }
 
 export default function SalesDocument({
-  kind, record, client, preferences = {}, onPrint, onBack, onEdit, canEdit = false,
-  resource, canGenerateDocument = false,
+  kind, record, client, preferences = {}, onPrint, onPrintDocument, onBack, onEdit, canEdit = false,
+  resource, canGenerateDocument = false, actionRequest, onActionComplete,
   paid = 0, balance = 0, payments = [],
 }) {
   const { notify } = useApp()
   const sheetRef = useRef(null)
+  const handledActionRef = useRef('')
   const [savedRecord, setSavedRecord] = useState(record)
   const [documentBusy, setDocumentBusy] = useState(false)
   const [documentStage, setDocumentStage] = useState('')
@@ -68,6 +81,64 @@ export default function SalesDocument({
   const needsRegeneration = Boolean(savedRecord.documentNeedsRegeneration)
   const readyDocument = currentDocument && !needsRegeneration
   const canGenerate = canGenerateDocument && isBackendMode
+  const printCurrentTemplate = onPrintDocument || onPrint
+
+  const renderCurrentPdf = useCallback(async ({ download = false, print = false, view = false } = {}) => {
+    if (print && printCurrentTemplate) {
+      printCurrentTemplate()
+      return
+    }
+    let previewWindow
+    if (print || view) {
+      previewWindow = window.open('about:blank', '_blank')
+      if (!previewWindow) {
+        notify(`Allow pop-ups to ${print ? 'print' : 'view'} the document.`, 'error')
+        return
+      }
+    }
+    if (!sheetRef.current) {
+      previewWindow?.close()
+      notify('The document preview is not ready to generate.', 'error')
+      return
+    }
+    setDocumentBusy(true)
+    setDocumentStage(download || print || view ? 'Generating' : '')
+    try {
+      const fileName = `${record.number || record.id || kind}.pdf`
+      const blob = await createDocumentPdf(sheetRef.current, fileName)
+      if (download) {
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = fileName
+        link.click()
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+      } else if (previewWindow) {
+        const url = URL.createObjectURL(blob)
+        previewWindow.location.replace(url)
+        previewWindow.opener = null
+        window.setTimeout(() => URL.revokeObjectURL(url), 60000)
+      }
+    } catch (error) {
+      previewWindow?.close()
+      notify(error.message || `Could not generate the ${kind.toLowerCase()} PDF.`, 'error')
+    } finally {
+      setDocumentBusy(false)
+      setDocumentStage('')
+    }
+  }, [kind, notify, printCurrentTemplate, record.id, record.number])
+
+  const finishActionRequest = useCallback(async (actionRequest) => {
+    if (actionRequest.type === 'download') await renderCurrentPdf({ download: true })
+    else if (actionRequest.type === 'print') await renderCurrentPdf({ print: true })
+  }, [renderCurrentPdf])
+
+  useEffect(() => {
+    if (!actionRequest || actionRequest.recordId !== record.id
+      || handledActionRef.current === actionRequest.id) return
+    handledActionRef.current = actionRequest.id
+    void finishActionRequest(actionRequest).finally(() => onActionComplete?.(actionRequest.id))
+  }, [actionRequest, finishActionRequest, onActionComplete, record.id])
 
   async function generateAndSaveDocument() {
     if (!canGenerate || !resource) {
@@ -266,9 +337,9 @@ export default function SalesDocument({
       </button>}
       {documentBusy && <span className="sales-doc-status" role="status">{documentStage}…</span>}
       {readyDocument && <>
-        <button type="button" className="sales-doc-button secondary" disabled={documentBusy} onClick={() => openSavedFile('current')}><Eye size={17} /> View Document</button>
-        <button type="button" className="sales-doc-button secondary" disabled={documentBusy} onClick={() => openSavedFile('current', { download: true })}><Download size={17} /> Download PDF</button>
-        <button type="button" className="sales-doc-button secondary" disabled={documentBusy} onClick={() => openSavedFile('current')}><Printer size={17} /> Print</button>
+        <button type="button" className="sales-doc-button secondary" disabled={documentBusy} onClick={() => kind === 'Invoice' ? renderCurrentPdf({ view: true }) : openSavedFile('current')}><Eye size={17} /> View Document</button>
+        <button type="button" className="sales-doc-button secondary" disabled={documentBusy} onClick={() => renderCurrentPdf({ download: true })}><Download size={17} /> Download PDF</button>
+        <button type="button" className="sales-doc-button secondary" disabled={documentBusy} onClick={() => printCurrentTemplate ? printCurrentTemplate() : renderCurrentPdf({ print: true })}><Printer size={17} /> Print</button>
       </>}
       {onPrint && <button type="button" className="sales-doc-button secondary" onClick={onPrint}>Print Preview</button>}
       {!currentDocument && <span className="sales-doc-status">Not Generated</span>}
@@ -307,7 +378,9 @@ export default function SalesDocument({
       <div className={`sales-doc-heading-grid${isFinancialDocument ? ' sales-doc-standard-header' : ''}`}>
         <div className="sales-doc-heading-left">
           <h1>{kind}</h1>
-          <PartyDetails title="Bill to:" {...clientDetails} />
+          {isFinancialDocument
+            ? <BillingDetails record={record} client={client} />
+            : <PartyDetails title="Bill to:" {...clientDetails} />}
         </div>
         <div className="sales-doc-heading-right">
           <div className="sales-doc-company-info">
@@ -316,12 +389,12 @@ export default function SalesDocument({
               <p className="sales-doc-company-name">{companyDetails.name.toUpperCase()}</p>
               <p>{companyDetails.business}</p>
               {companyDetails.address && <p className="sales-doc-company-address"><strong>Address:</strong><br />{companyDetails.address}</p>}
-              <p className="sales-doc-company-contact">
+              {!isFinancialDocument && <p className="sales-doc-company-contact">
                 <span><strong>Ward No.:</strong> {companyDetails.ward}</span>
                 <span><strong>Name:</strong> {companyDetails.contactName}</span>
                 <span><strong>Phone:</strong> {companyDetails.phone}</span>
                 <span><strong>Date:</strong> {companyDetails.businessDate}</span>
-              </p>
+              </p>}
             </div>
             <CompanyBrand name={companyDetails.name} />
           </div>

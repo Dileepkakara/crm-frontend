@@ -14,7 +14,6 @@ import { loadCompanySettings } from '../../api/companySettingsApi'
 import { formatCurrency, formatDate, getInvoicePaid } from '../../utils/formatters'
 import { amountInWords } from '../../utils/amountInWords'
 import { apiClient, isBackendMode } from '../../api/apiClient'
-import { deliverStoredDocument } from '../SalesFinance/documentPdf'
 
 const today = () => new Date().toISOString().slice(0, 10)
 const blankItem = () => ({ description: '', quantity: '1', rate: '' })
@@ -129,6 +128,7 @@ export default function InvoicesPage() {
   const [clientQuery, setClientQuery] = useState(() => sourceClientName(location.state?.invoiceSource, []))
   const [editing, setEditing] = useState(null)
   const [preview, setPreview] = useState(null)
+  const [actionRequest, setActionRequest] = useState(null)
   const [previewPayments, setPreviewPayments] = useState([])
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -339,27 +339,14 @@ export default function InvoicesPage() {
       setIssuing('')
     }
   }
-  function printRecord(record) {
-    if (record.documentNeedsRegeneration || !record.documentVersions?.some((version) => version.isCurrentVersion)) {
-      notify('Generate a current saved PDF from the invoice preview before printing.', 'error')
-      return
-    }
-    void deliverStoredDocument('invoices', record)
-      .catch((cause) => notify(cause.message || 'Could not open the saved invoice PDF.', 'error'))
+  function requestDocumentAction(record, type) {
+    setActionRequest({ id: `${record.id}-${type}-${Date.now()}`, recordId: record.id, type })
+    if (type === 'download') setPdfLoading(record.id)
+    setPreview(record)
+    setPreviewPayments(payments.filter((payment) => payment.invoiceId === record.id))
   }
-  async function downloadPdfRecord(record) {
-    setPdfLoading(record.id)
-    try {
-      if (record.documentNeedsRegeneration || !record.documentVersions?.some((version) => version.isCurrentVersion)) {
-        throw new Error('Generate a current saved PDF from the invoice preview before downloading.')
-      }
-      await deliverStoredDocument('invoices', record, { download: true })
-    } catch (cause) {
-      notify(cause.message || 'Could not download the saved invoice PDF.', 'error')
-    } finally {
-      setPdfLoading('')
-    }
-  }
+  function printRecord(record) { requestDocumentAction(record, 'print') }
+  function downloadPdfRecord(record) { requestDocumentAction(record, 'download') }
   function exportCsv() {
     const rows = [
       ['Invoice no.', 'Client', 'Project / service', 'Issue date', 'Due date', 'Total', 'Amount paid', 'Balance due', 'Status'],
@@ -398,7 +385,13 @@ export default function InvoicesPage() {
       <SalesDocument key={preview.id} kind="Invoice" record={preview}
         client={clients.find((item) => item.id === preview.clientId)} preferences={preferences}
         paid={paid} balance={Math.max(0, total - paid)} payments={previewPayments}
-        onBack={() => setPreview(null)} onPrint={user?.role === 'client' ? undefined : () => setPrinting(true)}
+        actionRequest={actionRequest?.recordId === preview.id ? actionRequest : undefined}
+        onActionComplete={(id) => {
+          setActionRequest((current) => current?.id === id ? null : current)
+          setPdfLoading('')
+        }}
+        onBack={() => { setPreview(null); setActionRequest(null) }}
+        onPrintDocument={() => setPrinting(true)} onPrint={user?.role === 'client' ? undefined : () => setPrinting(true)}
         resource="invoices" canGenerateDocument={can('invoices.manage')}
         onEdit={can('invoices.manage') ? () => { startEdit(preview); setPreview(null) } : undefined}
         canEdit={can('invoices.manage')} />
@@ -491,8 +484,7 @@ export default function InvoicesPage() {
         <tbody>{visibleRecords.map((record) => {
           const paid = getInvoicePaid(record.id, payments)
           const total = Number(record.total ?? record.amount) || 0
-          const currentDocumentReady = !record.documentNeedsRegeneration && record.documentVersions?.some((version) => version.isCurrentVersion)
-          return <tr key={record.id}><td>{record.id}</td><td>{record.client}</td><td>{record.project}</td><td>{formatDate(record.issueDate)}</td><td>{formatDate(record.dueDate)}</td><td>{formatCurrency(total)}</td><td>{formatCurrency(paid)}</td><td>{formatCurrency(Math.max(0, total - paid))}</td><td><Badge>{record.status}</Badge>{record.clientDecision?.status && <small className="invoice-client-decision">Client: {record.clientDecision.status}</small>}</td><td><div className="sales-module-row-actions quotation-row-actions invoice-row-actions"><button onClick={() => { setPreview(record); setPreviewPayments(payments.filter((payment) => payment.invoiceId === record.id)) }}>View</button><button disabled={!currentDocumentReady} onClick={() => printRecord(record)}>Print</button><button aria-label={`Download PDF for invoice ${record.id}`} disabled={Boolean(pdfLoading) || !currentDocumentReady} onClick={() => downloadPdfRecord(record)}><FileDown size={16} />{pdfLoading === record.id ? 'Preparing…' : 'PDF'}</button>{can('invoices.manage') && record.status === 'Draft' && <button disabled={Boolean(issuing)} onClick={() => issueDraft(record)}>{issuing === record.id ? 'Issuing…' : 'Issue'}</button>}{can('invoices.manage') && <button onClick={() => startEdit(record)}>Edit</button>}</div></td></tr>
+          return <tr key={record.id}><td>{record.id}</td><td>{record.client}</td><td>{record.project}</td><td>{formatDate(record.issueDate)}</td><td>{formatDate(record.dueDate)}</td><td>{formatCurrency(total)}</td><td>{formatCurrency(paid)}</td><td>{formatCurrency(Math.max(0, total - paid))}</td><td><Badge>{record.status}</Badge>{record.clientDecision?.status && <small className="invoice-client-decision">Client: {record.clientDecision.status}</small>}</td><td><div className="sales-module-row-actions quotation-row-actions invoice-row-actions"><button onClick={() => { setPreview(record); setPreviewPayments(payments.filter((payment) => payment.invoiceId === record.id)) }}>View</button><button onClick={() => printRecord(record)}>Print</button><button aria-label={`Download PDF for invoice ${record.id}`} disabled={Boolean(pdfLoading)} onClick={() => downloadPdfRecord(record)}><FileDown size={16} />{pdfLoading === record.id ? 'Preparing…' : 'PDF'}</button>{can('invoices.manage') && record.status === 'Draft' && <button disabled={Boolean(issuing)} onClick={() => issueDraft(record)}>{issuing === record.id ? 'Issuing…' : 'Issue'}</button>}{can('invoices.manage') && <button onClick={() => startEdit(record)}>Edit</button>}</div></td></tr>
         })}</tbody></table></div> : <div className="sales-module-empty">No invoices found.</div>}
     </section>
   </div>
